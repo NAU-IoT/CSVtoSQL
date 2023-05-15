@@ -1,5 +1,5 @@
 # CSVtoSQL
-This repository contains a method to autonomously convert CSV file data into a SQL database
+This repository contains a method to autonomously convert CSV file data into a SQL database if the csv file has not been modified within 24 hours
 
 ## Dependencies
 
