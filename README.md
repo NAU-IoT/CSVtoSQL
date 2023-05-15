@@ -23,4 +23,10 @@ This repository contains a method to autonomously convert CSV file data into a S
 - OR install with `sudo apt install libmariadb3 libmariadb-dev`
 -  install python/mariadb connector `pip install mariadb`
 
+## Using the Script
 
+- Clone repository to get necessary files `git clone https://github.com/NAU-IoT/CSVtoSQL.git`
+- Change into directory `cd CSVtoSQL`
+- Modify configuration file to suit your implementation `nano configuration.py`
+- Execute script `python3 csv2sql.py`
+- Done!
