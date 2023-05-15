@@ -3,20 +3,21 @@ import mariadb
 import csv
 import datetime
 import os
+import configuration as config
 
 # IP address of the MySQL database server
-DB_HOST = "localhost"
+DB_HOST = config.db_host
 # User name of the database server
-DB_USER = "mwc72"
+DB_USER = config.db_user
 # Password for the database user
-DB_PASSWORD = "testpi"
+DB_PASSWORD = config.db_password
 #database to be accessed
-DB_NAME = "PMonData"
+DB_NAME = config.db_name
 #port used by db
-DB_PORT = 1886
+DB_PORT = config.db_port
 
 # Establish path to directory
-Dir_Path = '/some/path/to/directory'
+Dir_Path = config.dir_path
 
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
@@ -56,7 +57,7 @@ for filename in os.listdir(Dir_Path):
    # Check if file isn't a directory and check if modified within last 24 hours
    if os.path.isfile(File_Path) and Current_Time - Last_Modified_Time > Delta:
       # File was edited over 24 hours ago, insert file into table
-      with open ('PowerMonitor-20230401.csv', 'r') as f:
+      with open (File_Path, 'r') as f:
         reader = csv.reader(f)
         columns = next(reader)
         query = 'insert into IOBoard1({0}) values ({1})'
