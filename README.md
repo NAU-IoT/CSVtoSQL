@@ -18,8 +18,9 @@ This repository contains a method to autonomously convert CSV file data into a S
     -  `FLUSH PRIVILEGES;`
     -  `exit`
   -  Check the status of mariadb `sudo systemctl status mariadb`
-
--  install python/mariadb connector `pip install mariadb`
+ 
+-  Install the mariadb development package `sudo apt-get install libmariadb-dev`
+-  Install python/mariadb connector `sudo pip install mariadb`
 
 ## Using the Script
 
