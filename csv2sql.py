@@ -30,6 +30,8 @@ conn = mariadb.connect(user=DB_USER,
 
 cursor = conn.cursor()
 
+#create database if it does not exist
+cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
 
 #create table if it does not exist
 create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
