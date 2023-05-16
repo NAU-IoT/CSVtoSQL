@@ -13,6 +13,8 @@ DB_USER = config.db_user
 DB_PASSWORD = config.db_password
 #database to be accessed
 DB_NAME = config.db_name
+#table to be accessed
+TABLE_NAME = config.table_name
 #port used by db
 DB_PORT = config.db_port
 
@@ -30,7 +32,7 @@ cursor = conn.cursor()
 
 
 #create table if it does not exist
-create_table_query = """CREATE TABLE IF NOT EXISTS IOBoard1 (
+create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
          id INT NOT NULL AUTO_INCREMENT,
          DateAndTime DATETIME(6) NOT NULL,
          LoadName CHAR(30) NOT NULL,
@@ -38,7 +40,8 @@ create_table_query = """CREATE TABLE IF NOT EXISTS IOBoard1 (
          LoadVoltage FLOAT,
          Current FLOAT,
          Power FLOAT,
-         PRIMARY KEY (id));"""
+         PRIMARY KEY (id)
+         );"""
 
 # To execute the SQL query
 cursor.execute(create_table_query)
