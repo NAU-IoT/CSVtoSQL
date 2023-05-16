@@ -63,7 +63,7 @@ for filename in os.listdir(Dir_Path):
       with open (File_Path, 'r') as f:
         reader = csv.reader(f)
         columns = next(reader)
-        query = 'insert into IOBoard1({0}) values ({1})'
+        query = f'insert into {TABLE_NAME} ({0}) values ({1})'
         # Fill query placeholders with column names and # of question marks equal to the number of columns
         query = query.format(','.join(columns), ','.join('?' * len(columns)))
         cursor = conn.cursor()
