@@ -25,13 +25,28 @@ Dir_Path = config.dir_path
 conn = mariadb.connect(user=DB_USER,
                        password=DB_PASSWORD,
                        host=DB_HOST,
-                       port=DB_PORT,
-                       database=DB_NAME)
+                       port=DB_PORT)
 
 cursor = conn.cursor()
 
 #create database if it does not exist
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
+
+#close the cursor
+cursor.close()
+
+#close initial connection
+conn.close()
+
+# Create a new connection object, this time including the database
+conn = mariadb.connect(user=DB_USER,
+                       password=DB_PASSWORD,
+                       host=DB_HOST,
+                       port=DB_PORT,
+                       database=DB_NAME)
+
+#create a new cursor object
+cursor = conn.cursor()
 
 #create table if it does not exist
 create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
@@ -65,9 +80,9 @@ for filename in os.listdir(Dir_Path):
       with open (File_Path, 'r') as f:
         reader = csv.reader(f)
         columns = next(reader)
-        query = f'insert into {TABLE_NAME} ({0}) values ({1})'
+        query = 'insert into {0} ({1}) values ({2})'
         # Fill query placeholders with column names and # of question marks equal to the number of columns
-        query = query.format(','.join(columns), ','.join('?' * len(columns)))
+        query = query.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
         cursor = conn.cursor()
         for row in reader:
           # Parse the datetime string and remove the timezone offset
@@ -78,9 +93,7 @@ for filename in os.listdir(Dir_Path):
 
         conn.commit()
 
+#close cursor and connection
+cursor.close()
 conn.close()
-
-
-
-
 
