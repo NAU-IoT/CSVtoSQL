@@ -21,6 +21,17 @@ DB_PORT = config.db_port
 # Establish path to directory
 Dir_Path = config.dir_path
 
+# Define function
+def get_last_csv_line(File_Path):
+    with open(File_Path, 'r') as file:
+        reader = csv.reader(file)
+        lines = list(reader)
+        if lines:
+            return lines[-1]  # Return the last line
+        else:
+            return None
+
+
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
                        password=DB_PASSWORD,
@@ -73,27 +84,68 @@ Delta = datetime.timedelta(hours=24)
 for filename in os.listdir(Dir_Path):
    # Get the full path for a file
    File_Path = os.path.join(Dir_Path, filename)
-   Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path))
-   # Check if file isn't a directory and check if modified within last 24 hours
-   if os.path.isfile(File_Path) and Current_Time - Last_Modified_Time > Delta:
-      # File was edited over 24 hours ago, insert file into table
-      with open (File_Path, 'r') as f:
-        reader = csv.reader(f)
-        columns = next(reader)
-        query = 'insert into {0} ({1}) values ({2})'
-        # Fill query placeholders with column names and # of question marks equal to the number of columns
-        query = query.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
-        cursor = conn.cursor()
-        for row in reader:
-          # Parse the datetime string and remove the timezone offset
-          dt = datetime.datetime.fromisoformat(row[0])
-          dt = dt.replace(tzinfo=None)
-          row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-          cursor.execute(query, row)
+   # test if File_Path is a file or directory
+   if os.path.isfile(File_Path):
+      #get the last line of the current file
+      last_line = get_last_csv_line(File_Path)
+      #PARSE LINE INTO COLUMN VARIABLES
+      column1, column2, column3, column4, column5, column6 = last_line
 
-        conn.commit()
+      # Execute query to check if line already exists in database
+      query = f"SELECT * FROM {TABLE_NAME} WHERE DateAndTime = ? AND LoadName = ? AND ShuntVoltage = ? AND LoadVoltage = ? AND Current = ? AND Power = ?;"
+      cursor.execute(query, (column1, column2, column3, column4, column5, column6))
+
+      # Fetch the result of the query
+      row = cursor.fetchall()
+
+      # Check if the row exists
+      if row:
+         # Row exists
+         print(f"{File_Path} already in database")
+
+      else:
+         # Row does not exist
+         # create variable for when the file was last modified
+         Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path))
+         # Check if file isn't a directory and check if modified within last 24 hours
+         if Current_Time - Last_Modified_Time > Delta:
+            # File was edited over 24 hours ago, insert file into table
+            with open (File_Path, 'r') as f:
+              reader = csv.reader(f)
+              columns = next(reader)
+              query = 'insert into {0} ({1}) values ({2})'
+              # Fill query placeholders with column names and # of question marks equal to the number of columns
+              query = query.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
+              cursor = conn.cursor()
+              for row in reader:
+                # Parse the datetime string and remove the timezone offset
+                dt = datetime.datetime.fromisoformat(row[0])
+                dt = dt.replace(tzinfo=None)
+                row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+                cursor.execute(query, row)
+
+              conn.commit()
+   else:
+      pass
 
 #close cursor and connection
 cursor.close()
 conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
