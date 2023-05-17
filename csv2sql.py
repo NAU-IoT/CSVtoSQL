@@ -80,24 +80,58 @@ Current_Time = datetime.datetime.now()
 # Define a time delta to be 24 hours
 Delta = datetime.timedelta(hours=24)
 
-# Loop through all files in the given directory
-for filename in os.listdir(Dir_Path):
+# Get list of files in given directory
+File_List = os.listdir(Dir_Path)
+# Sort files in ascending order by date
+File_List.sort()
+
+# Loop through all files in the sorted list
+for filename in File_List:
    # Get the full path for a file
    File_Path = os.path.join(Dir_Path, filename)
    # test if File_Path is a file or directory
    if os.path.isfile(File_Path):
       #get the last line of the current file
       last_line = get_last_csv_line(File_Path)
-      #PARSE LINE INTO COLUMN VARIABLES
-      column1, column2, column3, column4, column5, column6 = last_line
+      #print last line for debugging
+#      print(f"{last_line}")
+      #Parse Last_Line tuple into individual variables and convert variables into correct data types
+      DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
+      DandT = datetime.datetime.fromisoformat(DateAndTime)
+      DandT = DandT.replace(tzinfo=None)
+      DateAndTime = DandT.strftime('%Y-%m-%d %H:%M:%S.%f')
+      DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f")
+      ShuntVoltage = float(ShuntVoltage)
+      LoadVoltage = float(LoadVoltage)
+      Current = float(Current)
+      Power = float(Power)
+
+#The following is for debugging to ensure values and datatypes are correct before querying
+
+#      DnT = type(DateAndTime)
+#      LN = type(LoadName)
+#      SV = type(ShuntVoltage)
+#      LV = type(LoadVoltage)
+#      C = type(Current)
+#      P = type(Power)
+
+#      print(f"DateAndTime is {DateAndTime} of type {DnT}")
+#      print(f"LoadName is {LoadName} of type {LN}")
+#      print(f"ShuntVoltage is {ShuntVoltage} of type {SV}")
+#      print(f"LoadVoltage is {LoadVoltage} of type {LV}")
+#      print(f"Current is {Current} of type {C}")
+#      print(f"Power is {Power} of type {P}")
+
 
       # Execute query to check if line already exists in database
-      query = f"SELECT * FROM {TABLE_NAME} WHERE DateAndTime = ? AND LoadName = ? AND ShuntVoltage = ? AND LoadVoltage = ? AND Current = ? AND Power = ?;"
-      cursor.execute(query, (column1, column2, column3, column4, column5, column6))
+      query = "SELECT * FROM {0} WHERE DateAndTime LIKE '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
+      query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
+      cursor.execute(query)
 
       # Fetch the result of the query
-      row = cursor.fetchall()
-
+      row = cursor.fetchone()
+      # print row for debugging
+#      print(f"{row}")
       # Check if the row exists
       if row:
          # Row exists
@@ -125,27 +159,15 @@ for filename in os.listdir(Dir_Path):
                 cursor.execute(query, row)
 
               conn.commit()
+         else:
+            print(f"{File_Path} was last modified within 24 hours")
+
    else:
       pass
 
 #close cursor and connection
 cursor.close()
 conn.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
