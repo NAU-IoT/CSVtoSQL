@@ -21,14 +21,28 @@ DB_PORT = config.db_port
 # Establish path to directory
 Dir_Path = config.dir_path
 
+
+
 # Define function
 def get_last_csv_line(File_Path):
+    # empty string to later convert list into a string in order to use find
+    tempstring = ''
     with open(File_Path, 'r') as file:
-        reader = csv.reader(file)
-        lines = list(reader)
+        #replace any null values with a ? so that they can be identified later
+        reader = csv.reader(x.replace('\0','?') for x in file)
+        lines = [] #empty list
+        for line in reader:
+           #search for ? i.e. null characters in data
+           foundnull = tempstring.join(line).find('?')
+           # find returns a value if character is found, -1 if not found
+           if (foundnull != -1):
+              continue # Skip the line if it has null value(s)
+           else:
+              lines.append(line)
         if lines:
             return lines[-1]  # Return the last line
         else:
+            print(f"{File_Path} is empty or all data is corrupt")
             return None
 
 
@@ -144,19 +158,29 @@ for filename in File_List:
          # Check if file isn't a directory and check if modified within last 24 hours
          if Current_Time - Last_Modified_Time > Delta:
             # File was edited over 24 hours ago, insert file into table
+            # empty string to later convert list into a string in order to use find
+            tempstring = ''
             with open (File_Path, 'r') as f:
-              reader = csv.reader(f)
+              #replace any null characters
+              reader = csv.reader(x.replace('\0','?') for x in f)
               columns = next(reader)
               query = 'insert into {0} ({1}) values ({2})'
               # Fill query placeholders with column names and # of question marks equal to the number of columns
               query = query.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
               cursor = conn.cursor()
               for row in reader:
-                # Parse the datetime string and remove the timezone offset
-                dt = datetime.datetime.fromisoformat(row[0])
-                dt = dt.replace(tzinfo=None)
-                row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                cursor.execute(query, row)
+                 #search for ? i.e. null characters in data
+                 foundnull = tempstring.join(row).find('?')
+                 # find returns a value if character is found, -1 if not found
+                 if (foundnull != -1):
+                    print(f"skipping over corrupt data in {File_Path} at line {row}")
+                    continue # Skip the line if it has null value(s)
+                 else:
+                    # Parse the datetime string and remove the timezone offset
+                    dt = datetime.datetime.fromisoformat(row[0])
+                    dt = dt.replace(tzinfo=None)
+                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+                    cursor.execute(query, row)
 
               conn.commit()
          else:
@@ -168,6 +192,3 @@ for filename in File_List:
 #close cursor and connection
 cursor.close()
 conn.close()
-
-
-
