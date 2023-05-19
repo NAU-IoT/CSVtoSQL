@@ -4,6 +4,9 @@ import csv
 import datetime
 import os
 import configuration as config
+import logging
+
+logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG)
 
 # IP address of the MySQL database server
 DB_HOST = config.db_host
@@ -42,7 +45,7 @@ def get_last_csv_line(File_Path):
         if lines:
             return lines[-1]  # Return the last line
         else:
-            print(f"{File_Path} is empty or all data is corrupt")
+            logging.debug(f"{File_Path} is empty or all data is corrupt")
             return None
 
 
@@ -56,6 +59,10 @@ cursor = conn.cursor()
 
 #create database if it does not exist
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
+
+#check if database was created
+if cursor.rowcount == -1:
+    logging.info("Database already exists or an error occurred.")
 
 #close the cursor
 cursor.close()
@@ -87,6 +94,10 @@ create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
 
 # To execute the SQL query
 cursor.execute(create_table_query)
+
+#check if table was created
+if cursor.rowcount == -1:
+    logging.info("Table already exists or an error occurred.")
 
 # Get the current time
 Current_Time = datetime.datetime.now()
@@ -138,7 +149,7 @@ for filename in File_List:
 
 
       # Execute query to check if line already exists in database
-      query = "SELECT * FROM {0} WHERE DateAndTime LIKE '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
+      query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
       query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
       cursor.execute(query)
 
@@ -149,7 +160,7 @@ for filename in File_List:
       # Check if the row exists
       if row:
          # Row exists
-         print(f"{File_Path} already in database")
+         logging.info(f"{File_Path} already in database")
 
       else:
          # Row does not exist
@@ -173,22 +184,26 @@ for filename in File_List:
                  foundnull = tempstring.join(row).find('?')
                  # find returns a value if character is found, -1 if not found
                  if (foundnull != -1):
-                    print(f"skipping over corrupt data in {File_Path} at line {row}")
+                    logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
                     continue # Skip the line if it has null value(s)
                  else:
                     # Parse the datetime string and remove the timezone offset
                     dt = datetime.datetime.fromisoformat(row[0])
                     dt = dt.replace(tzinfo=None)
                     row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                    cursor.execute(query, row)
+                    try:
+                       cursor.execute(query, row)
+                    except Exception as e:
+                       logging.debug(f"Query execution failed: {str(e)}")
 
               conn.commit()
          else:
-            print(f"{File_Path} was last modified within 24 hours")
-
-   else:
-      pass
+            logging.info(f"{File_Path} was last modified within 24 hours")
 
 #close cursor and connection
 cursor.close()
 conn.close()
+
+logging.info("Database updated successfully")
+
+logging.info ("-"*100)
