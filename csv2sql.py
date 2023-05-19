@@ -1,4 +1,4 @@
-# import the mysql client for python
+# import libraries
 import mariadb
 import csv
 import datetime
@@ -160,7 +160,7 @@ for filename in File_List:
       # Check if the row exists
       if row:
          # Row exists
-         logging.info(f"{File_Path} already in database")
+         logging.info(f"{File_Path} already in table")
 
       else:
          # Row does not exist
@@ -197,13 +197,15 @@ for filename in File_List:
                        logging.debug(f"Query execution failed: {str(e)}")
 
               conn.commit()
+              logging.info(f"{File_Path} added to table")
          else:
-            logging.info(f"{File_Path} was last modified within 24 hours")
+            logging.info(f"{File_Path} was last modified within 24 hours, not added to table")
 
 #close cursor and connection
 cursor.close()
 conn.close()
 
-logging.info("Database updated successfully")
+logging.info(f"Table: {TABLE_NAME} was updated successfully")
 
 logging.info ("-"*100)
+
