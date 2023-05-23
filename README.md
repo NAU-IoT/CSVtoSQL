@@ -2,6 +2,7 @@
 This repository contains a method to autonomously convert CSV file data into a SQL database if the csv file has not been modified within 24 hours
 
 ## Running with Docker
+NOTE: Dockerfile does not take into account creating/hosting a database. Refer to "Running with Python" section to create your database. 
 
   - Install docker:
     - `sudo apt install docker.io`
@@ -10,7 +11,7 @@ This repository contains a method to autonomously convert CSV file data into a S
   - Change into cloned directory `cd CSVtoSQL`
   - Modify configuration.py to match your current implementation `nano configuration.py`
     - Refer to comments for necessary changes
-  - OPTIONAL: To change the docker containers time zone, edit line XX in the Dockerfile. A list of acceptable time zones can be found at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones 
+  - OPTIONAL: To change the docker containers time zone, edit line 19 in the Dockerfile. A list of acceptable time zones can be found at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones 
   - Build docker image in /CSVtoSQL directory `docker build -t csv2sql .` this may take a while
   - Create a directory in a convenient location to store the docker volume. For example: `mkdir /logs`
   - Create a volume to store data inside the directory created in the previous step `docker volume create --driver local 
@@ -23,10 +24,11 @@ This repository contains a method to autonomously convert CSV file data into a S
   - Verify container is running `docker ps`
   - Done!
 
+## Running with Python
 
-## Dependencies
+# Dependencies
 
-- Install mariadb 
+- Install mariadb (NOTE: Install on device hosting the database)
   - update package lists `sudo apt update`
   - install mariadb `sudo apt install mariadb-server`
   - configure mariadb for security `sudo mysql_secure_installation`
@@ -45,13 +47,17 @@ This repository contains a method to autonomously convert CSV file data into a S
 -  Install the mariadb development package `sudo apt-get install libmariadb-dev`
 -  Install python/mariadb connector `sudo pip install mariadb`
 
-## Using the Script
+# Using the Script
 
 - Clone repository to get necessary files `git clone https://github.com/NAU-IoT/CSVtoSQL.git`
 - Change into directory `cd CSVtoSQL`
 - Modify configuration file to suit your implementation `nano configuration.py`
 - Execute script `python3 csv2sql.py`
 - Done!
+
+# Using Cron
+
+- 
 
 ## Using Grafana to display MySQL data
 
