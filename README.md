@@ -7,6 +7,7 @@ This repository contains a method to autonomously convert CSV file data into a S
     - `sudo apt install docker.io`
     - Check if docker is functioning `sudo docker run hello-world`
   - Clone repository to get Dockerfile and configuration files `git clone https://github.com/NAU-IoT/CSVtoSQL.git`
+  - Change into cloned directory `cd CSVtoSQL`
   - Modify configuration.py to match your current implementation `nano configuration.py`
     - Refer to comments for necessary changes
   - OPTIONAL: To change the docker containers time zone, edit line XX in the Dockerfile. A list of acceptable time zones can be found at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones 
@@ -17,7 +18,7 @@ This repository contains a method to autonomously convert CSV file data into a S
     --opt device=/SOME/LOCAL/DIRECTORY 
     --opt o=bind 
     YOUR_VOLUME_NAME`
-  - Execute docker container in /CSVtoSQL directory `docker run --privileged -v YOUR_VOLUME_NAME:/Data -p YOUR_PORT_NUMBER:CONTAINER_PORT_NUMBER -t -i -d csv2sql`
+  - Execute docker container in /CSVtoSQL directory `docker run --privileged -v YOUR_VOLUME_NAME:/logs -p YOUR_PORT_NUMBER:CONTAINER_PORT_NUMBER -t -i -d csv2sql`
     - Note for IoT Team: Your_port_number could be 1886, container_port_number should be 3306
   - Verify container is running `docker ps`
   - Done!
