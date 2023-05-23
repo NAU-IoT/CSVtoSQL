@@ -1,32 +1,7 @@
 # CSVtoSQL
 This repository contains a method to autonomously convert CSV file data into a SQL database if the csv file has not been modified within 24 hours
 
-## Running with Docker
-NOTE: Dockerfile does not take into account creating/hosting a database. Refer to "Running with Python" section to create your database. 
-
-  - Install docker:
-    - `sudo apt install docker.io`
-    - Check if docker is functioning `sudo docker run hello-world`
-  - Clone repository to get Dockerfile and configuration files `git clone https://github.com/NAU-IoT/CSVtoSQL.git`
-  - Change into cloned directory `cd CSVtoSQL`
-  - Modify configuration.py to match your current implementation `nano configuration.py`
-    - Refer to comments for necessary changes
-  - OPTIONAL: To change the docker containers time zone, edit line 19 in the Dockerfile. A list of acceptable time zones can be found at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones 
-  - Build docker image in /CSVtoSQL directory `docker build -t csv2sql .` this may take a while
-  - Create a directory in a convenient location to store the docker volume. For example: `mkdir /logs`
-  - Create a volume to store data inside the directory created in the previous step `docker volume create --driver local 
-    --opt type=none 
-    --opt device=/SOME/LOCAL/DIRECTORY 
-    --opt o=bind 
-    YOUR_VOLUME_NAME`
-  - Execute docker container in /CSVtoSQL directory `docker run --privileged -v YOUR_VOLUME_NAME:/logs -p YOUR_PORT_NUMBER:CONTAINER_PORT_NUMBER -t -i -d csv2sql`
-    - Note for IoT Team: Your_port_number could be 1886, container_port_number should be 3306
-  - Verify container is running `docker ps`
-  - Done!
-
-## Running with Python
-
-# Dependencies
+## Dependencies
 
 - Install mariadb (NOTE: Install on device hosting the database)
   - update package lists `sudo apt update`
@@ -47,7 +22,7 @@ NOTE: Dockerfile does not take into account creating/hosting a database. Refer t
 -  Install the mariadb development package `sudo apt-get install libmariadb-dev`
 -  Install python/mariadb connector `sudo pip install mariadb`
 
-# Using the Script
+## Using the Script
 
 - Clone repository to get necessary files `git clone https://github.com/NAU-IoT/CSVtoSQL.git`
 - Change into directory `cd CSVtoSQL`
@@ -55,9 +30,11 @@ NOTE: Dockerfile does not take into account creating/hosting a database. Refer t
 - Execute script `python3 csv2sql.py`
 - Done!
 
-# Using Cron
+## Using Cron
 
-- 
+- (Optional) Modify CronCSVtoSQL.txt to change how often the cron job executes `nano CronCSVtoSQL.txt`
+- Load cron text file into cron table `crontab CronCSVtoSQL.txt`
+- Verify it was loaded by inspecting running cron jobs `crontab -l`
 
 ## Using Grafana to display MySQL data
 
