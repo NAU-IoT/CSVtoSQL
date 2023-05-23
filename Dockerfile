@@ -28,8 +28,6 @@ ADD CronCSVtoSQL.txt /etc/cron.d/cronjob
 
 RUN touch /var/log/cron.log
 
-RUN mkdir /logs
-
 RUN chmod 0644 /etc/cron.d/cronjob
 
 RUN chmod +x /csv2sql.py
