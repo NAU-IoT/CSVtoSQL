@@ -16,14 +16,14 @@ DB_USER = config.db_user
 DB_PASSWORD = config.db_password
 #database to be accessed
 DB_NAME = config.db_name
-#table to be accessed
-TABLE_NAME = config.table_name
 #port used by db
 DB_PORT = config.db_port
 
-# Establish path to directory
-Dir_Path = config.dir_path
+# Establish path to directory containing all other data directories
+Parent_Dir_Path = config.parent_dir_path
 
+# Get a list of all directories contained in parent directory
+Directories = os.listdir(Parent_Dir_Path)
 
 
 # Define function
@@ -70,56 +70,61 @@ cursor.close()
 #close initial connection
 conn.close()
 
-# Create a new connection object, this time including the database
-conn = mariadb.connect(user=DB_USER,
-                       password=DB_PASSWORD,
-                       host=DB_HOST,
-                       port=DB_PORT,
-                       database=DB_NAME)
+for Directory in Directories:
 
-#create a new cursor object
-cursor = conn.cursor()
+  Dir_Path = os.path.join(Parent_Dir_Path, Directory)
 
-#create table if it does not exist
-create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-         id INT NOT NULL AUTO_INCREMENT,
-         DateAndTime DATETIME(6) NOT NULL,
-         LoadName CHAR(30) NOT NULL,
-         ShuntVoltage FLOAT,
-         LoadVoltage FLOAT,
-         Current FLOAT,
-         Power FLOAT,
-         PRIMARY KEY (id)
-         );"""
+  # extract the last component of the path, i.e. the directory name and store it as the table name
+  TABLE_NAME = os.path.basename(Dir_Path)
 
-# To execute the SQL query
-cursor.execute(create_table_query)
+  # Create a new connection object, this time including the database
+  conn = mariadb.connect(user=DB_USER,
+                         password=DB_PASSWORD,
+                         host=DB_HOST,
+                         port=DB_PORT,
+                         database=DB_NAME)
 
-#check if table was created
-if cursor.rowcount == -1:
-    logging.info("Table already exists or an error occurred.")
+  #create a new cursor object
+  cursor = conn.cursor()
 
-# Get the current time
-Current_Time = datetime.datetime.now()
+  #create table if it does not exist
+  create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+           id INT NOT NULL AUTO_INCREMENT,
+           DateAndTime DATETIME(6) NOT NULL,
+           LoadName CHAR(30) NOT NULL,
+           ShuntVoltage FLOAT,
+           LoadVoltage FLOAT,
+           Current FLOAT,
+           Power FLOAT,
+           PRIMARY KEY (id)
+           );"""
 
-# Define a time delta to be 24 hours
-Delta = datetime.timedelta(hours=24)
+  # To execute the SQL query
+  cursor.execute(create_table_query)
 
-# Get list of files in given directory
-File_List = os.listdir(Dir_Path)
-# Sort files in ascending order by date
-File_List.sort()
+  #check if table was created
+  if cursor.rowcount == -1:
+      logging.info("Table already exists or an error occurred.")
 
-# Loop through all files in the sorted list
-for filename in File_List:
-   # Get the full path for a file
-   File_Path = os.path.join(Dir_Path, filename)
-   # test if File_Path is a file or directory
-   if os.path.isfile(File_Path):
+  # Get the current time
+  Current_Time = datetime.datetime.now()
+
+  # Define a time delta to be 24 hours
+  Delta = datetime.timedelta(hours=24)
+
+  # Get list of files in given directory
+  File_List = os.listdir(Dir_Path)
+  # Sort files in ascending order by date
+  File_List.sort()
+
+  # Loop through all files in the sorted list
+  for filename in File_List:
+     # Get the full path for a file
+     File_Path = os.path.join(Dir_Path, filename)
+     # test if File_Path is a file or directory
+     if os.path.isfile(File_Path):
       #get the last line of the current file
       last_line = get_last_csv_line(File_Path)
-      #print last line for debugging
-#      print(f"{last_line}")
       #Parse Last_Line tuple into individual variables and convert variables into correct data types
       DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
       DandT = datetime.datetime.fromisoformat(DateAndTime)
@@ -148,15 +153,13 @@ for filename in File_List:
 #      print(f"Power is {Power} of type {P}")
 
 
-      # Execute query to check if line already exists in table
+      # Execute query to check if line already exists in database
       query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
       query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
       cursor.execute(query)
 
       # Fetch the result of the query
       row = cursor.fetchone()
-      # print row for debugging
-#      print(f"{row}")
       # Check if the row exists
       if row:
          # Row exists
