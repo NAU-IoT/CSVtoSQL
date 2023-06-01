@@ -214,7 +214,7 @@ for Directory in Directories:
               # Fill query placeholders with column names and # of question marks equal to the number of columns
               insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
               cursor = conn.cursor()
-              for row in reader:  
+              for row in reader:
                  #search for ? i.e. null characters in data
                  foundnull = tempstring.join(row).find('?')
                  # find returns a value if character is found, -1 if not found
@@ -235,7 +235,7 @@ for Directory in Directories:
                     # Execute query to check if line already exists in table
                     query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
                     query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
-                    cursor.execute(query)  
+                    cursor.execute(query)
                     # Fetch the result of the query
                     RowInTable = cursor.fetchone()
                     # Check if the row exists in the table
@@ -256,11 +256,13 @@ for Directory in Directories:
               conn.commit()
               logging.info(f"{File_Path} added to table")
 
+  logging.info(f"Table: {TABLE_NAME} was updated successfully")
+
 #close cursor and connection
 cursor.close()
 conn.close()
 
-logging.info(f"Table: {TABLE_NAME} was updated successfully")
+logging.info(f"Database: {DB_NAME} was updated successfully")
 
 logging.info ("-"*100)
 
