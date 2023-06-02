@@ -90,7 +90,7 @@ for Directory in Directories:
   #create table if it does not exist
   create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
            id INT NOT NULL AUTO_INCREMENT,
-           DateAndTime DATETIME(6) NOT NULL,
+           DateAndTime DATETIME(6) UNIQUE NOT NULL,
            LoadName CHAR(30) NOT NULL,
            ShuntVoltage FLOAT,
            LoadVoltage FLOAT,
@@ -222,36 +222,15 @@ for Directory in Directories:
                     logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
                     continue # Skip the line if it has null value(s)
                  else:
-                    #Parse current row tuple into individual variables and convert variables into correct data types
-                    DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = row
-                    DandT = datetime.datetime.fromisoformat(DateAndTime)
-                    DandT = DandT.replace(tzinfo=None)
-                    DateAndTime = DandT.strftime('%Y-%m-%d %H:%M:%S.%f')
-                    DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f")
-                    ShuntVoltage = float(ShuntVoltage)
-                    LoadVoltage = float(LoadVoltage)
-                    Current = float(Current)
-                    Power = float(Power)
-                    # Execute query to check if line already exists in table
-                    query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
-                    query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
-                    cursor.execute(query)
-                    # Fetch the result of the query
-                    RowInTable = cursor.fetchone()
-                    # Check if the row exists in the table
-                    if RowInTable:
-                      # Row exists, continue to next line
-                      continue
-                    else:
-                      # Row does not exist, insert line into table
-                      # Parse the datetime string and remove the timezone offset
-                      dt = datetime.datetime.fromisoformat(row[0])
-                      dt = dt.replace(tzinfo=None)
-                      row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                      try:
-                         cursor.execute(insertquery, row)
-                      except Exception as e:
-                         logging.debug(f"Query execution failed: {str(e)}")
+                    # Insert line into table
+                    # Parse the datetime string and remove the timezone offset
+                    dt = datetime.datetime.fromisoformat(row[0])
+                    dt = dt.replace(tzinfo=None)
+                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+                    try:
+                       cursor.execute(insertquery, row)
+                    except Exception as e:
+                       logging.debug(f"Query execution failed: {str(e)}")
 
               conn.commit()
               logging.info(f"{File_Path} added to table")
@@ -265,4 +244,7 @@ conn.close()
 logging.info(f"Database: {DB_NAME} was updated successfully")
 
 logging.info ("-"*100)
+
+
+
 
