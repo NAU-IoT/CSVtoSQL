@@ -171,44 +171,8 @@ for Directory in Directories:
      File_Path = os.path.join(Dir_Path, filename)
      # test if File_Path is a file or directory
      if os.path.isfile(File_Path):
-      #get the last line of the current file
-      last_line = get_last_csv_line(File_Path)
-      #Parse Last_Line tuple into individual variables and convert variables into correct data types
-      DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
-      DandT = datetime.datetime.fromisoformat(DateAndTime)
-      if DandT.tzinfo != pytz.UTC:
-         DandT = DandT.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-      DateAndTime = DandT.strftime('%Y-%m-%d %H:%M:%S.%f')
-      DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f")
-      ShuntVoltage = float(ShuntVoltage)
-      LoadVoltage = float(LoadVoltage)
-      Current = float(Current)
-      Power = float(Power)
-
-#The following is for debugging to ensure values and datatypes are correct before querying
-
-#      DnT = type(DateAndTime)
-#      LN = type(LoadName)
-#      SV = type(ShuntVoltage)
-#      LV = type(LoadVoltage)
-#      C = type(Current)
-#      P = type(Power)
-
-#      print(f"DateAndTime is {DateAndTime} of type {DnT}")
-#      print(f"LoadName is {LoadName} of type {LN}")
-#      print(f"ShuntVoltage is {ShuntVoltage} of type {SV}")
-#      print(f"LoadVoltage is {LoadVoltage} of type {LV}")
-#      print(f"Current is {Current} of type {C}")
-#      print(f"Power is {Power} of type {P}")
-
-
-      # Execute query to check if line already exists in database
-      query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
-      query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
-      cursor.execute(query)
-
-      # Fetch the result of the query
-      row = cursor.fetchone()
+      # Check if file exists in db
+      row = check_file_in_db(cursor, table_name, file_path)
       # Check if the row exists
       if row:
          # Row exists
@@ -216,7 +180,7 @@ for Directory in Directories:
 
       else:
          # Row does not exist
-         # create variable for when the file was last modified
+         # Create variable for when the file was last modified
          Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path))
          # Check if file isn't a directory and check if modified within last 24 hours
          if Current_Time - Last_Modified_Time > Delta:
