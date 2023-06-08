@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # import libraries
 import mariadb
 import csv
@@ -5,8 +7,9 @@ import datetime
 import os
 import configuration as config
 import logging
+import pytz
 
-logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG)
+logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG)
 
 # IP address of the MySQL database server
 DB_HOST = config.db_host
@@ -128,7 +131,8 @@ for Directory in Directories:
       #Parse Last_Line tuple into individual variables and convert variables into correct data types
       DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
       DandT = datetime.datetime.fromisoformat(DateAndTime)
-      DandT = DandT.replace(tzinfo=None)
+      if DandT.tzinfo != pytz.UTC:
+         DandT = DandT.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
       DateAndTime = DandT.strftime('%Y-%m-%d %H:%M:%S.%f')
       DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f")
       ShuntVoltage = float(ShuntVoltage)
@@ -190,10 +194,11 @@ for Directory in Directories:
                     logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
                     continue # Skip the line if it has null value(s)
                  else:
-                    # Parse the datetime string and remove the timezone offset
+                    # Parse the datetime string
                     dt = datetime.datetime.fromisoformat(row[0])
-                    dt = dt.replace(tzinfo=None)
-                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+                    if dt.tzinfo != pytz.UTC:
+                       dt = dt.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
+                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f') #format the string to remove timezone offset
                     try:
                        cursor.execute(insertquery, row)
                     except Exception as e:
@@ -223,9 +228,10 @@ for Directory in Directories:
                     continue # Skip the line if it has null value(s)
                  else:
                     # Insert line into table
-                    # Parse the datetime string and remove the timezone offset
+                    # Parse the datetime string
                     dt = datetime.datetime.fromisoformat(row[0])
-                    dt = dt.replace(tzinfo=None)
+                    if dt.tzinfo != pytz.UTC:
+                       dt = dt.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
                     row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
                     try:
                        cursor.execute(insertquery, row)
@@ -244,6 +250,10 @@ conn.close()
 logging.info(f"Database: {DB_NAME} was updated successfully")
 
 logging.info ("-"*100)
+
+
+
+
 
 
 
