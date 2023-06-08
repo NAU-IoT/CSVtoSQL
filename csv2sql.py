@@ -84,16 +84,13 @@ def create_table(cursor, table_name):
      last_line = get_last_csv_line(File_Path)
      #Parse Last_Line tuple into individual variables and convert variables into correct data types
      DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
-     DandT = datetime.datetime.fromisoformat(DateAndTime)
-     if DandT.tzinfo != pytz.UTC:
-        DandT = DandT.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-     DateAndTime = DandT.strftime('%Y-%m-%d %H:%M:%S.%f')
-     DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f")
+     DateAndTime = format_timestamp(DateAndTime) # Format the timestamp
+     DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
      ShuntVoltage = float(ShuntVoltage)
      LoadVoltage = float(LoadVoltage)
      Current = float(Current)
      Power = float(Power)
-
+    
      #The following is for debugging to ensure values and datatypes are correct before querying
      #DnT = type(DateAndTime)
      #LN = type(LoadName)
@@ -107,7 +104,7 @@ def create_table(cursor, table_name):
      #print(f"LoadVoltage is {LoadVoltage} of type {LV}")
      #print(f"Current is {Current} of type {C}")
      #print(f"Power is {Power} of type {P}")
-
+        
      # Execute query to check if line already exists in database
      query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
      query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
@@ -117,6 +114,14 @@ def create_table(cursor, table_name):
      row = cursor.fetchone()
      return row
 
+    
+ def format_timestamp(timestamp):
+     ts = datetime.datetime.fromisoformat(timestamp)
+     if ts.tzinfo != pytz.UTC:
+        ts = ts.astimezone(pytz.UTC) # Convert timestamp to UTC if it is not already
+     timestamp = ts.strftime('%Y-%m-%d %H:%M:%S.%f') # Format the string to remove timezone offset
+     return timestamp
+    
     
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
@@ -203,11 +208,7 @@ for Directory in Directories:
                     logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
                     continue # Skip the line if it has null value(s)
                  else:
-                    # Parse the datetime string
-                    dt = datetime.datetime.fromisoformat(row[0])
-                    if dt.tzinfo != pytz.UTC:
-                       dt = dt.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f') #format the string to remove timezone offset
+                    row[0] = format_timestamp(row[0]) # Format the timestamp 
                     try:
                        cursor.execute(insertquery, row)
                     except Exception as e:
