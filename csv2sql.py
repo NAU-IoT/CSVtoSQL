@@ -123,6 +123,34 @@ def create_table(cursor, table_name):
      return timestamp
     
     
+def process_csv_file(connection_object, table_name, file_path):
+     # empty string to later convert list into a string in order to use find
+     tempstring = ''
+     with open (File_Path, 'r') as f:
+          #replace any null characters
+          reader = csv.reader(x.replace('\0','?') for x in f)
+          columns = next(reader)
+          insertquery = 'insert into {0} ({1}) values ({2})'
+          # Fill query placeholders with column names and # of question marks equal to the number of columns
+          insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
+          cursor = conn.cursor()
+          for row in reader:
+              #search for ? i.e. null characters in data
+              foundnull = tempstring.join(row).find('?')
+              # find returns a value if character is found, -1 if not found
+              if (foundnull != -1):
+                 logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
+                 continue # Skip the line if it has null value(s)
+              else:
+                 # Insert line into table
+                 row[0] = format_timestamp(row[0]) # Format timestamp
+                 try:
+                    cursor.execute(insertquery, row)
+                 except Exception as e:
+                    logging.debug(f"Query execution failed: {str(e)}")
+          conn.commit()
+          logging.info(f"{File_Path} added to table")
+    
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
                        password=DB_PASSWORD,
@@ -172,84 +200,25 @@ for Directory in Directories:
 
   # Loop through all files in the sorted list
   for filename in File_List:
-     # Get the full path for a file
-     File_Path = os.path.join(Dir_Path, filename)
+     File_Path = os.path.join(Dir_Path, filename) # Get the full path for a file
      # test if File_Path is a file or directory
      if os.path.isfile(File_Path):
-      # Check if file exists in db
-      row = check_file_in_db(cursor, table_name, file_path)
+      row = check_file_in_db(cursor, table_name, file_path) # Check if file exists in db
       # Check if the row exists
       if row:
          # Row exists
          logging.info(f"{File_Path} already in table")
-
       else:
          # Row does not exist
-         # Create variable for when the file was last modified
-         Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path))
+         Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
          # Check if file isn't a directory and check if modified within last 24 hours
          if Current_Time - Last_Modified_Time > Delta:
-            # File was edited over 24 hours ago, insert file into table
-            # empty string to later convert list into a string in order to use find
-            tempstring = ''
-            with open (File_Path, 'r') as f:
-              #replace any null characters
-              reader = csv.reader(x.replace('\0','?') for x in f)
-              columns = next(reader)
-              insertquery = 'insert into {0} ({1}) values ({2})'
-              # Fill query placeholders with column names and # of question marks equal to the number of columns
-              insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
-              cursor = conn.cursor()
-              for row in reader:
-                 #search for ? i.e. null characters in data
-                 foundnull = tempstring.join(row).find('?')
-                 # find returns a value if character is found, -1 if not found
-                 if (foundnull != -1):
-                    logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
-                    continue # Skip the line if it has null value(s)
-                 else:
-                    row[0] = format_timestamp(row[0]) # Format the timestamp 
-                    try:
-                       cursor.execute(insertquery, row)
-                    except Exception as e:
-                       logging.debug(f"Query execution failed: {str(e)}")
-
-              conn.commit()
-              logging.info(f"{File_Path} added to table")
+            # File was edited over 24 hours ago
+            process_csv_file(conn, TABLE_NAME, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
          else:
-            # File was edited within 24 hours ago, insert file and check line by line
+            # File was edited within 24 hours ago
             logging.info(f"{File_Path} was last modified within 24 hours")
-            # empty string to later convert list into a string in order to use find
-            tempstring = ''
-            with open (File_Path, 'r') as f:
-              #replace any null characters
-              reader = csv.reader(x.replace('\0','?') for x in f)
-              columns = next(reader)
-              insertquery = 'insert into {0} ({1}) values ({2})'
-              # Fill query placeholders with column names and # of question marks equal to the number of columns
-              insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
-              cursor = conn.cursor()
-              for row in reader:
-                 #search for ? i.e. null characters in data
-                 foundnull = tempstring.join(row).find('?')
-                 # find returns a value if character is found, -1 if not found
-                 if (foundnull != -1):
-                    logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
-                    continue # Skip the line if it has null value(s)
-                 else:
-                    # Insert line into table
-                    # Parse the datetime string
-                    dt = datetime.datetime.fromisoformat(row[0])
-                    if dt.tzinfo != pytz.UTC:
-                       dt = dt.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                    try:
-                       cursor.execute(insertquery, row)
-                    except Exception as e:
-                       logging.debug(f"Query execution failed: {str(e)}")
-
-              conn.commit()
-              logging.info(f"{File_Path} added to table")
+            process_csv_file(conn, TABLE_NAME, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
 
   logging.info(f"Table: {TABLE_NAME} was updated successfully")
 
