@@ -45,17 +45,16 @@ def get_last_csv_line(file_path):
         else:
             logging.debug(f"{File_Path} is empty or all data is corrupt")
             return None
-        
+
 def create_database(cursor, db_name):
     #create database if it does not exist
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-
     #check if database was created
     if cursor.rowcount == -1:
        logging.info("Database already exists or an error occurred.")
     else:
        logging.info("Database created successfully.")
-    
+
 def create_table(cursor, table_name):
     #create table if it does not exist
     create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
@@ -68,7 +67,7 @@ def create_table(cursor, table_name):
            Power FLOAT,
            PRIMARY KEY (id)
            );"""
-    
+
     # To execute the SQL query
     cursor.execute(create_table_query)
 
@@ -78,17 +77,14 @@ def create_table(cursor, table_name):
     else:
        logging.info("Table created successfully.")
 
-    
- def check_file_in_db(cursor, table_name, file_path):
+
+def check_file_in_db(cursor, table_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(File_Path)
      #Parse Last_Line tuple into individual variables and convert variables into correct data types
      DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
-     DandT = datetime.datetime.fromisoformat(DateAndTime)
-     if DandT.tzinfo != pytz.UTC:
-        DandT = DandT.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-     DateAndTime = DandT.strftime('%Y-%m-%d %H:%M:%S.%f')
-     DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f")
+     DateAndTime = format_timestamp(DateAndTime) # Format the timestamp
+     DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
      ShuntVoltage = float(ShuntVoltage)
      LoadVoltage = float(LoadVoltage)
      Current = float(Current)
@@ -107,7 +103,7 @@ def create_table(cursor, table_name):
      #print(f"LoadVoltage is {LoadVoltage} of type {LV}")
      #print(f"Current is {Current} of type {C}")
      #print(f"Power is {Power} of type {P}")
-
+        
      # Execute query to check if line already exists in database
      query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
      query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
@@ -117,7 +113,43 @@ def create_table(cursor, table_name):
      row = cursor.fetchone()
      return row
 
-    
+
+def format_timestamp(timestamp):
+     ts = datetime.datetime.fromisoformat(timestamp)
+     if ts.tzinfo != pytz.UTC:
+        ts = ts.astimezone(pytz.UTC) # Convert timestamp to UTC if it is not already
+     timestamp = ts.strftime('%Y-%m-%d %H:%M:%S.%f') # Format the string to remove timezone offset
+     return timestamp
+
+
+def process_csv_file(connection_object, table_name, file_path):
+     # empty string to later convert list into a string in order to use find
+     tempstring = ''
+     with open (File_Path, 'r') as f:
+          #replace any null characters
+          reader = csv.reader(x.replace('\0','?') for x in f)
+          columns = next(reader)
+          insertquery = 'insert into {0} ({1}) values ({2})'
+          # Fill query placeholders with column names and # of question marks equal to the number of columns
+          insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
+          cursor = conn.cursor()
+          for row in reader:
+              #search for ? i.e. null characters in data
+              foundnull = tempstring.join(row).find('?')
+              # find returns a value if character is found, -1 if not found
+              if (foundnull != -1):
+                 logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
+                 continue # Skip the line if it has null value(s)
+              else:
+                 # Insert line into table
+                 row[0] = format_timestamp(row[0]) # Format timestamp
+                 try:
+                    cursor.execute(insertquery, row)
+                 except Exception as e:
+                    logging.debug(f"Query execution failed: {str(e)}")
+          conn.commit()
+          logging.info(f"{File_Path} added to table")
+
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
                        password=DB_PASSWORD,
@@ -128,7 +160,7 @@ conn = mariadb.connect(user=DB_USER,
 cursor = conn.cursor()
 
 create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
-    
+
 #close the cursor
 cursor.close()
 
@@ -167,88 +199,25 @@ for Directory in Directories:
 
   # Loop through all files in the sorted list
   for filename in File_List:
-     # Get the full path for a file
-     File_Path = os.path.join(Dir_Path, filename)
+     File_Path = os.path.join(Dir_Path, filename) # Get the full path for a file
      # test if File_Path is a file or directory
      if os.path.isfile(File_Path):
-      # Check if file exists in db
-      row = check_file_in_db(cursor, table_name, file_path)
+      row = check_file_in_db(cursor, TABLE_NAME, File_Path) # Check if file exists in db
       # Check if the row exists
       if row:
          # Row exists
          logging.info(f"{File_Path} already in table")
-
       else:
          # Row does not exist
-         # Create variable for when the file was last modified
-         Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path))
+         Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
          # Check if file isn't a directory and check if modified within last 24 hours
          if Current_Time - Last_Modified_Time > Delta:
-            # File was edited over 24 hours ago, insert file into table
-            # empty string to later convert list into a string in order to use find
-            tempstring = ''
-            with open (File_Path, 'r') as f:
-              #replace any null characters
-              reader = csv.reader(x.replace('\0','?') for x in f)
-              columns = next(reader)
-              insertquery = 'insert into {0} ({1}) values ({2})'
-              # Fill query placeholders with column names and # of question marks equal to the number of columns
-              insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
-              cursor = conn.cursor()
-              for row in reader:
-                 #search for ? i.e. null characters in data
-                 foundnull = tempstring.join(row).find('?')
-                 # find returns a value if character is found, -1 if not found
-                 if (foundnull != -1):
-                    logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
-                    continue # Skip the line if it has null value(s)
-                 else:
-                    # Parse the datetime string
-                    dt = datetime.datetime.fromisoformat(row[0])
-                    if dt.tzinfo != pytz.UTC:
-                       dt = dt.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f') #format the string to remove timezone offset
-                    try:
-                       cursor.execute(insertquery, row)
-                    except Exception as e:
-                       logging.debug(f"Query execution failed: {str(e)}")
-
-              conn.commit()
-              logging.info(f"{File_Path} added to table")
+            # File was edited over 24 hours ago
+            process_csv_file(conn, TABLE_NAME, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
          else:
-            # File was edited within 24 hours ago, insert file and check line by line
+            # File was edited within 24 hours ago
             logging.info(f"{File_Path} was last modified within 24 hours")
-            # empty string to later convert list into a string in order to use find
-            tempstring = ''
-            with open (File_Path, 'r') as f:
-              #replace any null characters
-              reader = csv.reader(x.replace('\0','?') for x in f)
-              columns = next(reader)
-              insertquery = 'insert into {0} ({1}) values ({2})'
-              # Fill query placeholders with column names and # of question marks equal to the number of columns
-              insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
-              cursor = conn.cursor()
-              for row in reader:
-                 #search for ? i.e. null characters in data
-                 foundnull = tempstring.join(row).find('?')
-                 # find returns a value if character is found, -1 if not found
-                 if (foundnull != -1):
-                    logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
-                    continue # Skip the line if it has null value(s)
-                 else:
-                    # Insert line into table
-                    # Parse the datetime string
-                    dt = datetime.datetime.fromisoformat(row[0])
-                    if dt.tzinfo != pytz.UTC:
-                       dt = dt.astimezone(pytz.UTC) #convert timestamp to UTC if it is not already
-                    row[0] = dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                    try:
-                       cursor.execute(insertquery, row)
-                    except Exception as e:
-                       logging.debug(f"Query execution failed: {str(e)}")
-
-              conn.commit()
-              logging.info(f"{File_Path} added to table")
+            process_csv_file(conn, TABLE_NAME, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
 
   logging.info(f"Table: {TABLE_NAME} was updated successfully")
 
@@ -259,11 +228,3 @@ conn.close()
 logging.info(f"Database: {DB_NAME} was updated successfully")
 
 logging.info ("-"*100)
-
-
-
-
-
-
-
-
