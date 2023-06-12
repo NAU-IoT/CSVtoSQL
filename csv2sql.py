@@ -28,7 +28,7 @@ Directories = os.listdir(Parent_Dir_Path)
 def get_last_csv_line(file_path):
     # empty string to later convert list into a string in order to use find
     tempstring = ''
-    with open(File_Path, 'r') as file:
+    with open(file_path, 'r') as file:
         #replace any null values with a ? so that they can be identified later
         reader = csv.reader(x.replace('\0','?') for x in file)
         lines = [] #empty list
@@ -43,21 +43,26 @@ def get_last_csv_line(file_path):
         if lines:
             return lines[-1]  # Return the last line
         else:
-            logging.debug(f"{File_Path} is empty or all data is corrupt")
+            logging.debug(f"{file_path} is empty or all data is corrupt")
             return None
 
 def create_database(cursor, db_name):
     #create database if it does not exist
-    cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-    #check if database was created
+    cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
+    # Check if an error occurred during database creation
     if cursor.rowcount == -1:
-       logging.info("Database already exists or an error occurred.")
+       logging.info(f"An error occurred while creating the database {db_name}.")
     else:
-       logging.info("Database created successfully.")
+       # Check if the table already existed
+       if cursor.rowcount == 0:
+          logging.info(f"Database {db_name} already exists.")
+       else:
+          logging.info(f"Database {db_name} created successfully.")
+    
 
 def create_table(cursor, table_name):
     #create table if it does not exist
-    create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+    create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
            id INT NOT NULL AUTO_INCREMENT,
            DateAndTime DATETIME(6) UNIQUE NOT NULL,
            LoadName CHAR(30) NOT NULL,
@@ -67,20 +72,22 @@ def create_table(cursor, table_name):
            Power FLOAT,
            PRIMARY KEY (id)
            );"""
-
     # To execute the SQL query
     cursor.execute(create_table_query)
-
-    #check if table was created
+    # Check if an error occurred during table creation
     if cursor.rowcount == -1:
-      logging.info("Table already exists or an error occurred.")
+       logging.info(f"An error occurred while creating the table {table_name}.")
     else:
-       logging.info("Table created successfully.")
+       # Check if the table already existed
+       if cursor.rowcount == 0:
+          logging.info(f"Table {table_name} already exists.")
+       else:
+          logging.info(f"Table {table_name} created successfully.")
 
 
 def check_file_in_db(cursor, table_name, file_path):
      #get the last line of the current file
-     last_line = get_last_csv_line(File_Path)
+     last_line = get_last_csv_line(file_path)
      #Parse Last_Line tuple into individual variables and convert variables into correct data types
      DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
      DateAndTime = format_timestamp(DateAndTime) # Format the timestamp
@@ -106,7 +113,7 @@ def check_file_in_db(cursor, table_name, file_path):
         
      # Execute query to check if line already exists in database
      query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
-     query = query.format(TABLE_NAME, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
+     query = query.format(table_name, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
      cursor.execute(query)
     
      # Fetch the result of the query
@@ -125,20 +132,20 @@ def format_timestamp(timestamp):
 def process_csv_file(connection_object, table_name, file_path):
      # empty string to later convert list into a string in order to use find
      tempstring = ''
-     with open (File_Path, 'r') as f:
+     with open (file_path, 'r') as f:
           #replace any null characters
           reader = csv.reader(x.replace('\0','?') for x in f)
           columns = next(reader)
           insertquery = 'insert into {0} ({1}) values ({2})'
           # Fill query placeholders with column names and # of question marks equal to the number of columns
-          insertquery = insertquery.format(TABLE_NAME, ','.join(columns), ','.join('?' * len(columns)))
-          cursor = conn.cursor()
+          insertquery = insertquery.format(table_name, ','.join(columns), ','.join('?' * len(columns)))
+          cursor = connection_object.cursor()
           for row in reader:
               #search for ? i.e. null characters in data
               foundnull = tempstring.join(row).find('?')
               # find returns a value if character is found, -1 if not found
               if (foundnull != -1):
-                 logging.info(f"skipping over corrupt data in {File_Path} at line {row}")
+                 logging.info(f"skipping over corrupt data in {file_path} at line {row}")
                  continue # Skip the line if it has null value(s)
               else:
                  # Insert line into table
@@ -148,7 +155,7 @@ def process_csv_file(connection_object, table_name, file_path):
                  except Exception as e:
                     logging.debug(f"Query execution failed: {str(e)}")
           conn.commit()
-          logging.info(f"{File_Path} added to table")
+          logging.info(f"{file_path} added to table")
 
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
