@@ -202,7 +202,7 @@ for Directory in Directories:
      File_Path = os.path.join(Dir_Path, filename) # Get the full path for a file
      # test if File_Path is a file or directory
      if os.path.isfile(File_Path):
-      row = check_file_in_db(cursor, TABLE_NAME, file_path) # Check if file exists in db
+      row = check_file_in_db(cursor, TABLE_NAME, File_Path) # Check if file exists in db
       # Check if the row exists
       if row:
          # Row exists
