@@ -1,2 +1,2 @@
-# execute csv2sql.py at midnight on wednesday and sunday of every week
-0 0 * * 0,3 /usr/bin/python3 /home/supervisor/CSVtoSQL/csv2sql.py
+# execute csv2sql.py every 5 minutes
+*/5 * * * * /usr/bin/python3 /home/supervisor/CSVtoSQL/csv2sql.py
