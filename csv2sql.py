@@ -45,17 +45,16 @@ def get_last_csv_line(file_path):
         else:
             logging.debug(f"{File_Path} is empty or all data is corrupt")
             return None
-        
+
 def create_database(cursor, db_name):
     #create database if it does not exist
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-
     #check if database was created
     if cursor.rowcount == -1:
        logging.info("Database already exists or an error occurred.")
     else:
        logging.info("Database created successfully.")
-    
+
 def create_table(cursor, table_name):
     #create table if it does not exist
     create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
@@ -68,7 +67,7 @@ def create_table(cursor, table_name):
            Power FLOAT,
            PRIMARY KEY (id)
            );"""
-    
+
     # To execute the SQL query
     cursor.execute(create_table_query)
 
@@ -78,8 +77,8 @@ def create_table(cursor, table_name):
     else:
        logging.info("Table created successfully.")
 
-    
- def check_file_in_db(cursor, table_name, file_path):
+
+def check_file_in_db(cursor, table_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(File_Path)
      #Parse Last_Line tuple into individual variables and convert variables into correct data types
@@ -90,7 +89,7 @@ def create_table(cursor, table_name):
      LoadVoltage = float(LoadVoltage)
      Current = float(Current)
      Power = float(Power)
-    
+
      #The following is for debugging to ensure values and datatypes are correct before querying
      #DnT = type(DateAndTime)
      #LN = type(LoadName)
@@ -114,15 +113,15 @@ def create_table(cursor, table_name):
      row = cursor.fetchone()
      return row
 
-    
- def format_timestamp(timestamp):
+
+def format_timestamp(timestamp):
      ts = datetime.datetime.fromisoformat(timestamp)
      if ts.tzinfo != pytz.UTC:
         ts = ts.astimezone(pytz.UTC) # Convert timestamp to UTC if it is not already
      timestamp = ts.strftime('%Y-%m-%d %H:%M:%S.%f') # Format the string to remove timezone offset
      return timestamp
-    
-    
+
+
 def process_csv_file(connection_object, table_name, file_path):
      # empty string to later convert list into a string in order to use find
      tempstring = ''
@@ -150,7 +149,7 @@ def process_csv_file(connection_object, table_name, file_path):
                     logging.debug(f"Query execution failed: {str(e)}")
           conn.commit()
           logging.info(f"{File_Path} added to table")
-    
+
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
                        password=DB_PASSWORD,
@@ -161,7 +160,7 @@ conn = mariadb.connect(user=DB_USER,
 cursor = conn.cursor()
 
 create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
-    
+
 #close the cursor
 cursor.close()
 
@@ -229,11 +228,3 @@ conn.close()
 logging.info(f"Database: {DB_NAME} was updated successfully")
 
 logging.info ("-"*100)
-
-
-
-
-
-
-
-
