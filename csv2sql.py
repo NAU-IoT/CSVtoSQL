@@ -9,20 +9,24 @@ import configuration as config
 import logging
 import pytz
 
-logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG)
+# logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG) # use this line to create log file in working directory
+logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
 
 DB_HOST = config.db_host # IP address of the MySQL database server
 DB_USER = config.db_user # User name of the database server
 DB_PASSWORD = config.db_password # Password for the database user
 DB_NAME = config.db_name # Database to be accessed
+TABLE_NAME = config.table_name # Table to write data to
 DB_PORT = config.db_port # Port used by db
 
-# Establish path to directory containing all other data directories
+# Establish path to directory containing files or all other data directories
 Parent_Dir_Path = config.parent_dir_path
 
-# Get a list of all directories contained in parent directory
-Directories = os.listdir(Parent_Dir_Path)
-
+# Get a list of all directories contained in parent directory except for directories titled "logs"
+Directories = [
+              directory
+              for directory in os.listdir(Parent_Dir_Path)
+              if directory != "logs" and os.path.isdir(os.path.join(Parent_Dir_Path, directory))]
 
 # Define function
 def get_last_csv_line(file_path):
@@ -53,16 +57,16 @@ def create_database(cursor, db_name):
     if cursor.rowcount == -1:
        logging.info(f"An error occurred while creating the database {db_name}.")
     else:
-       # Check if the table already existed
+       # Check if the database already existed
        if cursor.rowcount == 0:
           logging.info(f"Database {db_name} already exists.")
        else:
           logging.info(f"Database {db_name} created successfully.")
-    
+
 
 def create_table(cursor, table_name):
     #create table if it does not exist
-    create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+    create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
            id INT NOT NULL AUTO_INCREMENT,
            DateAndTime DATETIME(6) NOT NULL,
            LoadName CHAR(30) NOT NULL,
@@ -111,12 +115,11 @@ def check_file_in_db(cursor, table_name, file_path):
      #print(f"LoadVoltage is {LoadVoltage} of type {LV}")
      #print(f"Current is {Current} of type {C}")
      #print(f"Power is {Power} of type {P}")
-        
+
      # Execute query to check if line already exists in database
      query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
      query = query.format(table_name, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
      cursor.execute(query)
-    
      # Fetch the result of the query
      row = cursor.fetchone()
      return row
@@ -158,81 +161,78 @@ def process_csv_file(connection_object, table_name, file_path):
           conn.commit()
           logging.info(f"{file_path} added to table")
 
+
+def process_files_in_directory(directory_path, cursor, table_name, connection_object):
+    # Get the current time
+    Current_Time = datetime.datetime.now()
+    # Define a time delta to be 24 hours
+    Delta = datetime.timedelta(hours=24)
+    # Get list of files in given directory
+    File_List = os.listdir(directory_path)
+    # Sort files in ascending order by date
+    File_List.sort()
+    # Loop through all files in the sorted list
+    for filename in File_List:
+        File_Path = os.path.join(directory_path, filename) # Get the full path for a file
+        # test if File_Path is a file or directory
+        if os.path.isfile(File_Path):
+           row = check_file_in_db(cursor, table_name, File_Path) # Check if file exists in db
+           # Check if the row exists
+           if row:
+             # Row exists
+             logging.info(f"{File_Path} already in table")
+           else:
+             # Row does not exist
+             Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
+             # Check if file isn't a directory and check if modified within last 24 hours
+             if Current_Time - Last_Modified_Time > Delta:
+                # File was edited over 24 hours ago
+                process_csv_file(connection_object, table_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
+             else:
+                # File was edited within 24 hours ago
+                logging.info(f"{File_Path} was last modified within 24 hours")
+                process_csv_file(connection_object, table_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
+    logging.info(f"Table: {table_name} was updated successfully")
+
+
 # Create a connection object
 conn = mariadb.connect(user=DB_USER,
                        password=DB_PASSWORD,
                        host=DB_HOST,
                        port=DB_PORT)
-
-# create a cusor object
-cursor = conn.cursor()
-
+cursor = conn.cursor() # Create a cusor object
 create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
+cursor.close() # Close the cursor
+conn.close() # Close initial connection
 
-#close the cursor
-cursor.close()
+# Create a new connection object, this time including the database
+conn = mariadb.connect(user=DB_USER,
+                       password=DB_PASSWORD,
+                       host=DB_HOST,
+                       port=DB_PORT,
+                       database=DB_NAME)
+cursor = conn.cursor() # Create a new cursor object
 
-#close initial connection
-conn.close()
+if(Directories):
+  # Multiple directories, create a table for each directory and process the files in each one
+  for Directory in Directories:
+      Dir_Path = os.path.join(Parent_Dir_Path, Directory)
+      # extract the last component of the path, i.e. the directory name and store it as the table name
+      TABLE_NAME = os.path.basename(Dir_Path)
+      create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
+      process_files_in_directory(Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
+  #close cursor and connection
+  cursor.close()
+  conn.close()
+  logging.info(f"Database: {DB_NAME} was updated successfully")
+  logging.info ("-"*100)
 
-for Directory in Directories:
-
-  Dir_Path = os.path.join(Parent_Dir_Path, Directory)
-
-  # extract the last component of the path, i.e. the directory name and store it as the table name
-  TABLE_NAME = os.path.basename(Dir_Path)
-
-  # Create a new connection object, this time including the database
-  conn = mariadb.connect(user=DB_USER,
-                         password=DB_PASSWORD,
-                         host=DB_HOST,
-                         port=DB_PORT,
-                         database=DB_NAME)
-
-  #create a new cursor object
-  cursor = conn.cursor()
-
-  create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
-
-  # Get the current time
-  Current_Time = datetime.datetime.now()
-
-  # Define a time delta to be 24 hours
-  Delta = datetime.timedelta(hours=24)
-
-  # Get list of files in given directory
-  File_List = os.listdir(Dir_Path)
-  # Sort files in ascending order by date
-  File_List.sort()
-
-  # Loop through all files in the sorted list
-  for filename in File_List:
-     File_Path = os.path.join(Dir_Path, filename) # Get the full path for a file
-     # test if File_Path is a file or directory
-     if os.path.isfile(File_Path):
-      row = check_file_in_db(cursor, TABLE_NAME, File_Path) # Check if file exists in db
-      # Check if the row exists
-      if row:
-         # Row exists
-         logging.info(f"{File_Path} already in table")
-      else:
-         # Row does not exist
-         Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
-         # Check if file isn't a directory and check if modified within last 24 hours
-         if Current_Time - Last_Modified_Time > Delta:
-            # File was edited over 24 hours ago
-            process_csv_file(conn, TABLE_NAME, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
-         else:
-            # File was edited within 24 hours ago
-            logging.info(f"{File_Path} was last modified within 24 hours")
-            process_csv_file(conn, TABLE_NAME, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
-
-  logging.info(f"Table: {TABLE_NAME} was updated successfully")
-
-#close cursor and connection
-cursor.close()
-conn.close()
-
-logging.info(f"Database: {DB_NAME} was updated successfully")
-
-logging.info ("-"*100)
+else:
+   # Only one directory, create one table and process files in directory
+   create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
+   process_files_in_directory(Parent_Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
+   #close cursor and connection
+   cursor.close()
+   conn.close()
+   logging.info(f"Database: {DB_NAME} was updated successfully")
+   logging.info ("-"*100)
