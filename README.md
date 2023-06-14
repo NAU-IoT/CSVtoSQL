@@ -1,40 +1,93 @@
 # CSVtoSQL
 This repository contains scripts used to convert CSV file data into a SQL database. The function can be preformed on a directory containing csv files or on a parent directory containing subdirectories that have csv files in them.  
 
+This repository includes instructions on:
+  - Installing dependencies
+  - How to use the scripts
+  - How to implement this function as a cron job
+  - How to display SQL data on Grafana
+
 ## Dependencies
 
 - Install mariadb (NOTE: Install on device hosting the database)
-  - update package lists `sudo apt update`
-  - install mariadb `sudo apt install mariadb-server`
-  - configure mariadb for security `sudo mysql_secure_installation`
+  - Update package lists:
+  ```
+  sudo apt update
+  ```
+  - Install mariadb: 
+  ```
+  sudo apt install mariadb-server
+  ```
+  - Configure mariadb for security:
     -  When running this command, prompts will appear, follow the instructions for each prompt below:
         -  *Enter current password for root (enter for none):* PRESS ENTER
         -  *Switch to unix_socket authentication [Y/n]:* TYPE N AND ENTER
         -  *Set root password? [Y/n]:* TYPE N AND ENTER
         -  TYPE Y AND ENTER FOR ALL SUBSEQUENT PROMPTS
-  - (Optional) create new user with root permissions
-    -  `sudo mariadb`
-    -  `GRANT ALL ON *.* TO 'YOUR_USERNAME'@'localhost' IDENTIFIED BY 'YOUR_PASSWORD' WITH GRANT OPTION;`
-    -  `FLUSH PRIVILEGES;`
-    -  `exit`
-  -  Check the status of mariadb `sudo systemctl status mariadb`
+  ```
+  sudo mysql_secure_installation
+  ```
+  - (Optional) create new user with root permissions:
+  ```
+  sudo mariadb
+  ```
+  ```
+  GRANT ALL ON *.* TO 'YOUR_USERNAME'@'localhost' IDENTIFIED BY 'YOUR_PASSWORD' WITH GRANT OPTION;
+  ```
+  ```
+  FLUSH PRIVILEGES;
+  ```
+  ```
+  exit
+  ```
+  -  Check the status of mariadb:
+  ```
+  sudo systemctl status mariadb
+  ```
  
--  Install the mariadb development package `sudo apt-get install libmariadb-dev`
--  Install python/mariadb connector `sudo pip install mariadb`
+-  Install the mariadb development package: 
+```
+sudo apt-get install libmariadb-dev
+```
+-  Install python/mariadb connector:
+```
+sudo pip install mariadb
+```
 
 ## Using the Script
 
-- Clone repository to get necessary files `git clone https://github.com/NAU-IoT/CSVtoSQL.git`
-- Change into directory `cd CSVtoSQL`
-- Modify configuration file to suit your implementation `nano configuration.py`
-- Execute script `python3 csv2sql.py`
+- Clone repository to get necessary files: 
+```
+git clone https://github.com/NAU-IoT/CSVtoSQL.git
+```
+- Change into repository directory: 
+```
+cd CSVtoSQL
+```
+- Modify configuration file to suit your implementation:
+```
+nano configuration.py
+```
+- Execute script: 
+```
+python3 csv2sql.py
+```
 - Done!
 
 ## Using Cron
 
-- (Optional) Modify CronCSVtoSQL.txt to change how often the cron job executes `nano CronCSVtoSQL.txt`
-- Load cron text file into cron table `crontab CronCSVtoSQL.txt`
-- Verify it was loaded by inspecting running cron jobs `crontab -l`
+- (Optional) Modify CronCSVtoSQL.txt to change how often the cron job executes: 
+```
+nano CronCSVtoSQL.txt
+```
+- Load cron text file into cron table 
+```
+crontab CronCSVtoSQL.txt
+```
+- Verify it was loaded by inspecting running cron jobs: 
+```
+crontab -l
+```
 
 ## Using Grafana to display MySQL data
 
@@ -43,13 +96,34 @@ NOTES:
  - These instructions assume you are installing grafana on the same device on which the SQL database is located
 
 STEPS:
-- Install required packages `sudo apt-get install -y apt-transport-https software-properties-common wget`
-- Download the Grafana repository signing key `sudo wget -q -O /usr/share/keyrings/grafana.key https://apt.grafana.com/gpg.key`
-- Add a repository for stable releases `echo "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list`
-- Update the list of available packages `sudo apt-get update`
-- Install the latest OSS release `sudo apt-get install grafana`
-- Start the Grafana service `sudo systemctl start grafana-server.service `
-- Check the status of the Grafana service to ensure it is running `sudo systemctl status grafana-server.service`
+- Install required packages 
+```
+sudo apt-get install -y apt-transport-https software-properties-common wget
+```
+- Download the Grafana repository signing key 
+```
+sudo wget -q -O /usr/share/keyrings/grafana.key https://apt.grafana.com/gpg.key
+```
+- Add a repository for stable releases: 
+```
+echo "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+```
+- Update the list of available packages: 
+```
+sudo apt-get update
+```
+- Install the latest OSS release: 
+```
+sudo apt-get install grafana
+```
+- Start the Grafana service: 
+```
+sudo systemctl start grafana-server.service
+```
+- Check the status of the Grafana service to ensure it is running: 
+```
+sudo systemctl status grafana-server.service
+```
 
 
 Once this has ben completed, you can begin setting up a dashboard to display the data from the SQL database. For official instructions, refer to the documenation here: https://grafana.com/docs/grafana/latest/
