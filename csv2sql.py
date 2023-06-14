@@ -62,15 +62,16 @@ def create_database(cursor, db_name):
 
 def create_table(cursor, table_name):
     #create table if it does not exist
-    create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
+    create_table_query = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
            id INT NOT NULL AUTO_INCREMENT,
-           DateAndTime DATETIME(6) UNIQUE NOT NULL,
+           DateAndTime DATETIME(6) NOT NULL,
            LoadName CHAR(30) NOT NULL,
            ShuntVoltage FLOAT,
            LoadVoltage FLOAT,
            Current FLOAT,
            Power FLOAT,
-           PRIMARY KEY (id)
+           PRIMARY KEY (DateAndTime, LoadName),
+           KEY id_key (id)
            );"""
     # To execute the SQL query
     cursor.execute(create_table_query)
