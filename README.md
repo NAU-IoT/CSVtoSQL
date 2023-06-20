@@ -1,11 +1,12 @@
 # CSVtoSQL
 This repository contains scripts used to convert CSV file data into a SQL database. The function can be preformed on a directory containing csv files or on a parent directory containing subdirectories that have csv files in them.  
 
-This repository includes instructions on:
+This repository includes information on:
   - Installing dependencies
   - How to use the scripts
   - How to adapt the script to process various csv file data
   - How to implement this function as a cron job
+  - Input and expected output format
   - How to display SQL data on Grafana
 
 ## Dependencies
@@ -94,6 +95,15 @@ crontab CronCSVtoSQL.txt
 crontab -l
 ```
 
+## Example input and expected output
+
+The following image displays an example of a properly formatted csv file with 3 lines of data:
+<img width="529" alt="Screen Shot 2023-06-20 at 3 05 13 PM" src="https://github.com/NAU-IoT/CSVtoSQL/assets/72172361/9a66b970-849a-41dc-a87f-1347a9a8a8ae">
+
+The image below shows the corresponding expected output when viewing the same data in MySQL. First we must select the "testdb" database created by the script, then select all the data from the "Example" table:
+<img width="777" alt="Screen Shot 2023-06-20 at 3 03 56 PM" src="https://github.com/NAU-IoT/CSVtoSQL/assets/72172361/3201c1f1-a7b2-4919-b8fd-d738aec05b9b">
+
+
 ## Using Grafana to display MySQL data
 
 NOTES: 
@@ -147,3 +157,8 @@ Once this has ben completed, you can begin setting up a dashboard to display the
 
 5. Select type of visualization. This example is comparing Power Consumption of a load against time. Switch from builder to code under the query section. Next, write your query. Next, hit run query. Finally, if you are satisfied with the look of your graph, click Apply.
    <img width="1361" alt="Screen Shot 2023-05-22 at 2 07 56 PM" src="https://github.com/NAU-IoT/CSVtoSQL/assets/72172361/ac0704a6-fa4c-4b92-be9d-83d15012e10a">
+
+
+
+
+   
