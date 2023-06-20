@@ -4,6 +4,7 @@ This repository contains scripts used to convert CSV file data into a SQL databa
 This repository includes instructions on:
   - Installing dependencies
   - How to use the scripts
+  - How to adapt the script to process various csv file data
   - How to implement this function as a cron job
   - How to display SQL data on Grafana
 
@@ -73,6 +74,10 @@ nano configuration.py
 python3 csv2sql.py
 ```
 - Done!
+
+## Adapting the Script
+
+- Modify 
 
 ## Using Cron
 
