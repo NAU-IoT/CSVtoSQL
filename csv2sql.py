@@ -77,17 +77,18 @@ def create_table(cursor, table_name):
            PRIMARY KEY (DateAndTime, LoadName),
            KEY id_key (id)
            );"""
-    # To execute the SQL query
-    cursor.execute(create_table_query)
-    # Check if an error occurred during table creation
-    if cursor.rowcount == -1:
-       logging.info(f"An error occurred while creating the table {table_name}.")
+    # Check if the table already exists
+    cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+    result = cursor.fetchone()
+    if result:
+        logging.info(f"Table {table_name} already exists.")
     else:
-       # Check if the table already existed
-       if cursor.rowcount == 0:
-          logging.info(f"Table {table_name} already exists.")
-       else:
-          logging.info(f"Table {table_name} created successfully.")
+        try:
+            # Create the table
+            cursor.execute(create_table_query)
+            logging.info(f"Table {table_name} created successfully.")
+        except Exception as e:
+            logging.error(f"An error occurred while creating the table {table_name}: {str(e)}")
 
 
 def check_file_in_db(cursor, table_name, file_path):
