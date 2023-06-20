@@ -195,44 +195,49 @@ def process_files_in_directory(directory_path, cursor, table_name, connection_ob
     logging.info(f"Table: {table_name} was updated successfully")
 
 
-# Create a connection object
-conn = mariadb.connect(user=DB_USER,
-                       password=DB_PASSWORD,
-                       host=DB_HOST,
-                       port=DB_PORT)
-cursor = conn.cursor() # Create a cusor object
-create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
-cursor.close() # Close the cursor
-conn.close() # Close initial connection
+def main():
+  # Create a connection object
+  conn = mariadb.connect(user=DB_USER,
+                         password=DB_PASSWORD,
+                         host=DB_HOST,
+                         port=DB_PORT)
+  cursor = conn.cursor() # Create a cusor object
+  create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
+  cursor.close() # Close the cursor
+  conn.close() # Close initial connection
 
-# Create a new connection object, this time including the database
-conn = mariadb.connect(user=DB_USER,
-                       password=DB_PASSWORD,
-                       host=DB_HOST,
-                       port=DB_PORT,
-                       database=DB_NAME)
-cursor = conn.cursor() # Create a new cursor object
+  # Create a new connection object, this time including the database
+  conn = mariadb.connect(user=DB_USER,
+                         password=DB_PASSWORD,
+                         host=DB_HOST,
+                         port=DB_PORT,
+                         database=DB_NAME)
+  cursor = conn.cursor() # Create a new cursor object
 
-if(Directories):
-  # Multiple directories, create a table for each directory and process the files in each one
-  for Directory in Directories:
-      Dir_Path = os.path.join(Parent_Dir_Path, Directory)
-      # extract the last component of the path, i.e. the directory name and store it as the table name
-      TABLE_NAME = os.path.basename(Dir_Path)
-      create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
-      process_files_in_directory(Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
-  #close cursor and connection
-  cursor.close()
-  conn.close()
-  logging.info(f"Database: {DB_NAME} was updated successfully")
-  logging.info ("-"*100)
+  if(Directories):
+    # Multiple directories, create a table for each directory and process the files in each one
+    for Directory in Directories:
+        Dir_Path = os.path.join(Parent_Dir_Path, Directory)
+        # extract the last component of the path, i.e. the directory name and store it as the table name
+        TABLE_NAME = os.path.basename(Dir_Path)
+        create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
+        process_files_in_directory(Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
+    #close cursor and connection
+    cursor.close()
+    conn.close()
+    logging.info(f"Database: {DB_NAME} was updated successfully")
+    logging.info ("-"*100)
 
-else:
-   # Only one directory, create one table and process files in directory
-   create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
-   process_files_in_directory(Parent_Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
-   #close cursor and connection
-   cursor.close()
-   conn.close()
-   logging.info(f"Database: {DB_NAME} was updated successfully")
-   logging.info ("-"*100)
+  else:
+     # Only one directory, create one table and process files in directory
+     create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
+     process_files_in_directory(Parent_Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
+     #close cursor and connection
+     cursor.close()
+     conn.close()
+     logging.info(f"Database: {DB_NAME} was updated successfully")
+     logging.info ("-"*100)
+
+
+if __name__ == "__main__":
+    main()
