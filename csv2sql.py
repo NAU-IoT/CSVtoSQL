@@ -12,8 +12,14 @@ import yaml
 # logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG) # use this line to create log file in working directory
 logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
 
+# Get the directory of the current script file
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Build the full path to the configuration file
+config_file_path = os.path.join(script_dir, 'configuration.yaml')
+
 # Load the YAML file
-with open('configuration.yaml', 'r') as file:
+with open(config_file_path, 'r') as file:
     config = yaml.safe_load(file)
 
 # Access the variables
