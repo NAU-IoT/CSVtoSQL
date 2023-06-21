@@ -55,6 +55,10 @@ sudo apt-get install libmariadb-dev
 ```
 sudo pip install mariadb
 ```
+- Install YAML parsing library:
+```
+sudo pip install pyyaml
+```
 
 ## Using the Script
 

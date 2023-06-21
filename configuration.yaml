@@ -1,0 +1,7 @@
+db_host: "localhost"  # IP address of the device hosting the MySQL database server
+db_user: "YOUR_USERNAME"  # User name of the database server
+db_password: "YOUR_PASSWORD" # Password for the database user
+db_name: "PMonData"  # Database to be accessed
+db_port: 3306  # Port used by database
+parent_dir_path: '/some/path/to/directory'  # Directory where csv files or subdirectories containing csv files are located
+table_name: "IOBoardx" # Table to be written to, only used if there is a single directory being processed
