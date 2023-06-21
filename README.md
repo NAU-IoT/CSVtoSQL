@@ -82,7 +82,10 @@ python3 csv2sql.py
 
 ## Adapting the Script
 
-- Modify 
+- Lines 79-89: Modify the create_table fucntion by changing column names and data types to apply to your data (add/remove columns as necessary)
+- Lines 108-114: Change variable names and data types to reflect your tables columns and data types (refer to comments in code)
+- Line 131: Modify query to reflect your column names
+- Line 132: Change variable names to fit placeholders in query. These variables should be the same ones assigned at lines 108-114
 
 ## Using Cron
 
