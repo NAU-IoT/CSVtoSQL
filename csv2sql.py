@@ -8,19 +8,24 @@ import os
 import configuration as config
 import logging
 import pytz
+import yaml
 
 # logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG) # use this line to create log file in working directory
 logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
 
-DB_HOST = config.db_host # IP address of the MySQL database server
-DB_USER = config.db_user # User name of the database server
-DB_PASSWORD = config.db_password # Password for the database user
-DB_NAME = config.db_name # Database to be accessed
-TABLE_NAME = config.table_name # Table to write data to
-DB_PORT = config.db_port # Port used by db
+# Load the YAML file
+with open('configuration.yaml', 'r') as file:
+    config = yaml.safe_load(file)
 
-# Establish path to directory containing files or all other data directories
-Parent_Dir_Path = config.parent_dir_path
+# Access the variables
+DB_HOST = config['db_host'] # IP address of the MySQL database server
+DB_USER = config['db_user'] # User name of the database server
+DB_PASSWORD = config['db_password'] # Password for the database user
+DB_NAME = config['db_name'] # Database to be accessed
+DB_PORT = config['db_port'] # Port used by db
+TABLE_NAME = config['table_name'] # Table to write data to
+
+Parent_Dir_Path = config['parent_dir_path'] # Establish path to directory containing files or all other data directories
 
 # Get a list of all directories contained in parent directory except for directories titled "logs"
 Directories = [
