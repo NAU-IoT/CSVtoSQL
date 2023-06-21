@@ -5,7 +5,6 @@ import mariadb
 import csv
 import datetime
 import os
-import configuration as config
 import logging
 import pytz
 import yaml
