@@ -1,2 +1,0 @@
-# execute csv2sql.py every 5 minutes
-*/5 * * * * /usr/bin/python3 /SOME/PATH/TO/csv2sql.py >>/SOME/PATH/TO/csv2sql.out 2>>/SOME/PATH/TO/csv2sql.err
