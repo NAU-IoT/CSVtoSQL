@@ -93,7 +93,7 @@ python3 csv2sql.py
 ```
 crontab -e
 ```
-- Modify the following lines to adjust how often the cron job executes, then paste the lines into the cron table: 
+- Paste the following lines into the cron table and modify the lines to adjust how often the cron job executes: 
 ```
 # execute csv2sql.py every 5 minutes
 */5 * * * * /usr/bin/python3 /SOME/PATH/TO/csv2sql.py >>/SOME/PATH/TO/csv2sql.out 2>>/SOME/PATH/TO/csv2sql.err
