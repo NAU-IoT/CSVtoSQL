@@ -6,3 +6,5 @@ db_port: 3306  # Port used by database
 parent_dir_path: '/some/path/to/directory'  # Directory where csv files or subdirectories containing csv files are located
 table_name: "PMonData" # Table to be written to
 station_name: "Stationx" # Stationary Node where data is coming from, only used if there is a single directory being processed
+# ***IMPORTANT*** Data types should correspond to columns in the csv files being processed in the order they appear
+datatypes: ['CHAR (30)', 'DATETIME', 'CHAR (30)', 'FLOAT', 'FLOAT', 'FLOAT', 'FLOAT'] 
