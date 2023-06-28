@@ -29,6 +29,7 @@ DB_PASSWORD = config['db_password'] # Password for the database user
 DB_NAME = config['db_name'] # Database to be accessed
 DB_PORT = config['db_port'] # Port used by db
 TABLE_NAME = config['table_name'] # Table to write data to
+STATION_NAME = config['station_name'] # Stationary node where data is coming from
 
 Parent_Dir_Path = config['parent_dir_path'] # Establish path to directory containing files or all other data directories
 
@@ -78,6 +79,7 @@ def create_table(cursor, table_name):
     #create table if it does not exist
     create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
            id INT NOT NULL AUTO_INCREMENT,
+           Station CHAR(30) NOT NULL,
            DateAndTime DATETIME(6) NOT NULL,
            LoadName CHAR(30) NOT NULL,
            ShuntVoltage FLOAT,
@@ -144,7 +146,7 @@ def format_timestamp(timestamp):
      return timestamp
 
 
-def process_csv_file(connection_object, table_name, file_path):
+def process_csv_file(connection_object, table_name, station_name, file_path):
      # empty string to later convert list into a string in order to use find
      tempstring = ''
      with open (file_path, 'r') as f:
@@ -165,6 +167,7 @@ def process_csv_file(connection_object, table_name, file_path):
               else:
                  # Insert line into table
                  row[0] = format_timestamp(row[0]) # Format timestamp
+                 row.insert(0, station_name)
                  try:
                     cursor.execute(insertquery, row)
                  except Exception as e:
@@ -173,7 +176,7 @@ def process_csv_file(connection_object, table_name, file_path):
           logging.info(f"{file_path} added to table")
 
 
-def process_files_in_directory(directory_path, cursor, table_name, connection_object):
+def process_files_in_directory(directory_path, cursor, table_name, station_name, connection_object):
     # Get the current time
     Current_Time = datetime.datetime.now()
     # Define a time delta to be 24 hours
@@ -198,11 +201,11 @@ def process_files_in_directory(directory_path, cursor, table_name, connection_ob
              # Check if file isn't a directory and check if modified within last 24 hours
              if Current_Time - Last_Modified_Time > Delta:
                 # File was edited over 24 hours ago
-                process_csv_file(connection_object, table_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
+                process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
              else:
                 # File was edited within 24 hours ago
                 logging.info(f"{File_Path} was last modified within 24 hours")
-                process_csv_file(connection_object, table_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, file_path)
+                process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
     logging.info(f"Table: {table_name} was updated successfully")
 
 
@@ -216,7 +219,6 @@ def main():
   create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
   cursor.close() # Close the cursor
   conn.close() # Close initial connection
-
   # Create a new connection object, this time including the database
   conn = mariadb.connect(user=DB_USER,
                          password=DB_PASSWORD,
@@ -224,15 +226,15 @@ def main():
                          port=DB_PORT,
                          database=DB_NAME)
   cursor = conn.cursor() # Create a new cursor object
-
+  # Create table
+  create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
   if(Directories):
-    # Multiple directories, create a table for each directory and process the files in each one
+    # Multiple directories, process the files in each one
     for Directory in Directories:
         Dir_Path = os.path.join(Parent_Dir_Path, Directory)
-        # extract the last component of the path, i.e. the directory name and store it as the table name
-        TABLE_NAME = os.path.basename(Dir_Path)
-        create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
-        process_files_in_directory(Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
+        # extract the last component of the path, i.e. the directory name and store it as the station name
+        STATION_NAME = os.path.basename(Dir_Path)
+        process_files_in_directory(Dir_Path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
     #close cursor and connection
     cursor.close()
     conn.close()
@@ -240,9 +242,7 @@ def main():
     logging.info ("-"*100)
 
   else:
-     # Only one directory, create one table and process files in directory
-     create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
-     process_files_in_directory(Parent_Dir_Path, cursor, TABLE_NAME, conn) # Parameters are (directory path, cursor, table name, connection object)
+     process_files_in_directory(Dir_Path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
      #close cursor and connection
      cursor.close()
      conn.close()
