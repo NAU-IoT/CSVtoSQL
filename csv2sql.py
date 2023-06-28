@@ -31,7 +31,13 @@ DB_PORT = config['db_port'] # Port used by db
 TABLE_NAME = config['table_name'] # Table to write data to
 STATION_NAME = config['station_name'] # Stationary node where data is coming from
 
-Parent_Dir_Path = config['parent_dir_path'] # Establish path to directory containing files or all other data directories
+# Extract the 'datatypes' list from the configuration file
+datatypes_yaml = yaml_data['datatypes']
+# Convert YAML list to Python list
+DATATYPES = list(datatypes_yaml)
+
+# Establish path to directory containing files or all other data directories
+Parent_Dir_Path = config['parent_dir_path']
 
 # Get a list of all directories contained in parent directory except for directories titled "logs"
 Directories = [
