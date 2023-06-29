@@ -32,7 +32,7 @@ TABLE_NAME = config['table_name'] # Table to write data to
 STATION_NAME = config['station_name'] # Stationary node where data is coming from
 
 # Extract the 'datatypes' list from the configuration file
-datatypes_yaml = yaml_data['datatypes']
+datatypes_yaml = config['datatypes']
 # Convert YAML list to Python list
 DATATYPES = list(datatypes_yaml)
 
@@ -73,7 +73,7 @@ def get_csv_header(file_path):
         reader = csv.reader(file)
         header = next(reader)  # Read the header line
     return header
-    
+
 
 def create_database(cursor, db_name):
     #create database if it does not exist
@@ -105,8 +105,7 @@ def create_table(cursor, table_name, file_path):
           KeyVar2 = column # Define second key as string, hopefully a unique identifying name
        else:
           KeyVar2 = column # Second key defaults to last column in table
-    create_table_query +=       
-           f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
+    create_table_query += f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
            KEY id_key (id)
            );"""
     # Check if the table already exists
@@ -126,27 +125,28 @@ def create_table(cursor, table_name, file_path):
 def check_file_in_db(cursor, table_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
-     # Split the last line into separate values
-     values = last_line.split(', ')
-     # Assign the values to variables dynamically using a dictionary
-     variables = {f"Var{i+1}": value for i, value in enumerate(values)}
+     # Assign the values in the last line to variables dynamically using a dictionary
+     variables = {f"Var{i+1}": value for i, value in enumerate(last_line)}
 
      # (debugging) Print the values of the variables
      #print(variables["Var1"])
      #print(variables["Var2"])
      #print(variables["Var3"])
-
+     #print(variables["Var4"])
+     #print(variables["Var5"])
+     #print(variables["Var6"])
+    
      # Create empty list for variables
      data = []
      # Assign variables with corresponding datatypes
      for i in range(len(variables)):
         if(DATATYPES[i].startswith('CHAR'):
            pass
-        elif(DATATYPES[i].startswith('INT'):
+        elif(DATATYPES[i].startswith('INT')):
            variables[i] = int(variables[i])
-        elif(DATATYPES[i].startswith('FLOAT'):
+        elif(DATATYPES[i].startswith('FLOAT')):
            variables[i] = float(variables[i])
-        elif(DATATYPES[i].startswith('DATETIME'):
+        elif(DATATYPES[i].startswith('DATETIME')):
            variables[i] = format_timestamp(variables[i]) # Format the timestamp
            variables[i] = datetime.datetime.strptime(variables[i], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
         else:
