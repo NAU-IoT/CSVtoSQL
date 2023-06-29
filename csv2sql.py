@@ -90,14 +90,11 @@ def create_database(cursor, db_name):
 
 
 def create_table(cursor, table_name, file_path):
-
     header = get_csv_header(file_path)
-    
     #create table if it does not exist
     create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
            id INT NOT NULL AUTO_INCREMENT,
            Station CHAR(30) NOT NULL,"""
-
     # Append columns and datatypes to query
     for column, datatype in zip(header, DATATYPES):
        create_table_query += f"\n{column} {datatype},"
@@ -108,12 +105,10 @@ def create_table(cursor, table_name, file_path):
           KeyVar2 = column # Define second key as string, hopefully a unique identifying name
        else:
           KeyVar2 = column # Second key defaults to last column in table
-
     create_table_query +=       
            f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
            KEY id_key (id)
            );"""
-
     # Check if the table already exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     result = cursor.fetchone()
@@ -156,21 +151,17 @@ def check_file_in_db(cursor, table_name, file_path):
            variables[i] = datetime.datetime.strptime(variables[i], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
         else:
             print("Datatype not supported")
-        data.append(variables[i])
-        
+        data.append(variables[i])     
      # Get the header of the csv file
      header = get_csv_header(file_path)
      # Convert header to a comma-separated string for columns
      columns = ", ".join(header)
-
      # debugging
      print(f"data is: {data}")
      print(f"columns are: {columns}")
-    
      # Execute query to check if line already exists in database
      query = "SELECT * FROM {} WHERE {} LIKE {};"
      query = query.format(table_name, columns, data)
-    
      cursor.execute(query)
      # Fetch the result of the query
      row = cursor.fetchone()
@@ -229,6 +220,8 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
         File_Path = os.path.join(directory_path, filename) # Get the full path for a file
         # test if File_Path is a file or directory
         if os.path.isfile(File_Path):
+           # Create table
+           create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
            row = check_file_in_db(cursor, table_name, File_Path) # Check if file exists in db
            # Check if the row exists
            if row:
@@ -265,8 +258,6 @@ def main():
                          port=DB_PORT,
                          database=DB_NAME)
   cursor = conn.cursor() # Create a new cursor object
-  # Create table
-  create_table(cursor, TABLE_NAME, file_path) # Parameters are (cursor, table name, csv file)
   if(Directories):
     # Multiple directories, process the files in each one
     for Directory in Directories:
