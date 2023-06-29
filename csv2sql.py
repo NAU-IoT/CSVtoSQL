@@ -90,36 +90,41 @@ def create_database(cursor, db_name):
 
 
 def create_table(cursor, table_name, file_path):
-    header = get_csv_header(file_path)
-    #create table if it does not exist
-    create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
-           id INT NOT NULL AUTO_INCREMENT,
-           Station CHAR(30) NOT NULL,"""
-    # Append columns and datatypes to query
-    for column, datatype in zip(header, DATATYPES):
-       create_table_query += f"\n{column} {datatype},"
-       # Select keys to ensure uniqueness in table
-       if(datatype.startswith('DATETIME')):
-          KeyVar1 = column # Define first key as timestamp
-       elif(datatype.startswith('CHAR')):
-          KeyVar2 = column # Define second key as string, hopefully a unique identifying name
-       else:
-          KeyVar2 = column # Second key defaults to last column in table
-    create_table_query += f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
-           KEY id_key (id)
-           );"""
     # Check if the table already exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     result = cursor.fetchone()
     if result:
-        logging.info(f"Table {table_name} already exists.")
+        pass
+        #logging.info(f"Table {table_name} already exists.")
     else:
         try:
-            # Create the table
-            cursor.execute(create_table_query)
-            logging.info(f"Table {table_name} created successfully.")
+           header = get_csv_header(file_path)
+           #create table if it does not exist
+           create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
+                  id INT NOT NULL AUTO_INCREMENT,
+                  Station CHAR(30) NOT NULL,"""
+           # Append columns and datatypes to query
+           for column, datatype in zip(header, DATATYPES):
+              #print(f"column {column} is type {datatype}")                    # FOR DEBUGGING
+              create_table_query += f"\n{column} {datatype},"
+              # Select keys to ensure uniqueness in table
+              if(datatype.startswith('DATETIME')):
+                 KeyVar1 = column # Define first key as timestamp
+              elif(datatype.startswith('CHAR')):
+                 KeyVar2 = column # Define second key as string, hopefully a unique identifying name
+              else:
+                if(KeyVar2):
+                   pass
+                else:
+                   KeyVar2 = column # Second key defaults to last column in table
+           create_table_query += f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
+                  KEY id_key (id)
+                  );"""
+           # Create the table
+           cursor.execute(create_table_query)
+           logging.info(f"Table {table_name} created successfully.")
         except Exception as e:
-            logging.error(f"An error occurred while creating the table {table_name}: {str(e)}")
+           logging.error(f"An error occurred while creating the table {table_name}: {str(e)}")
 
 
 def check_file_in_db(cursor, table_name, file_path):
@@ -151,7 +156,7 @@ def check_file_in_db(cursor, table_name, file_path):
            variables[i] = datetime.datetime.strptime(variables[i], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
         else:
             print("Datatype not supported")
-        data.append(variables[i])     
+        data.append(variables[i])
      # Get the header of the csv file
      header = get_csv_header(file_path)
      # Convert header to a comma-separated string for columns
