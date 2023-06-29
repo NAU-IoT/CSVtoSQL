@@ -131,42 +131,34 @@ def check_file_in_db(cursor, table_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
-     variables = {f"Var{i+1}": value for i, value in enumerate(last_line)}
+     variables = {f"{i}": value for i, value in enumerate(last_line)}
 
-     # (debugging) Print the values of the variables
-     #print(variables["Var1"])
-     #print(variables["Var2"])
-     #print(variables["Var3"])
-     #print(variables["Var4"])
-     #print(variables["Var5"])
-     #print(variables["Var6"])
-    
      # Create empty list for variables
      data = []
      # Assign variables with corresponding datatypes
      for i in range(len(variables)):
-        if(DATATYPES[i].startswith('CHAR'):
-           pass
+        if(DATATYPES[i].startswith('CHAR')):
+           variables[f"{i}"] = f"'{variables[f'{i}']}'"
         elif(DATATYPES[i].startswith('INT')):
-           variables[i] = int(variables[i])
+           variables[f"{i}"] = int(variables[f"{i}"])
         elif(DATATYPES[i].startswith('FLOAT')):
-           variables[i] = float(variables[i])
+           variables[f"{i}"] = float(variables[f"{i}"])
         elif(DATATYPES[i].startswith('DATETIME')):
-           variables[i] = format_timestamp(variables[i]) # Format the timestamp
-           variables[i] = datetime.datetime.strptime(variables[i], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
+           variables[f"{i}"] = format_timestamp(variables[f"{i}"]) # Format the timestamp
+           variables[f"{i}"] = datetime.datetime.strptime(variables[f"{i}"], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
+           variables[f"{i}"] = f"'{variables[f'{i}']}'"
         else:
             print("Datatype not supported")
-        data.append(variables[i])
+        data.append(variables[f"{i}"])
      # Get the header of the csv file
      header = get_csv_header(file_path)
-     # Convert header to a comma-separated string for columns
-     columns = ", ".join(header)
-     # debugging
-     print(f"data is: {data}")
-     print(f"columns are: {columns}")
+     # Join the column names with placeholders using the LIKE operator
+     placeholders = " AND ".join(["{} LIKE {}".format(column, datapoint) for column, datapoint in zip(header, data)])
      # Execute query to check if line already exists in database
-     query = "SELECT * FROM {} WHERE {} LIKE {};"
-     query = query.format(table_name, columns, data)
+     query = "SELECT * FROM {} WHERE {};"
+     query = query.format(table_name, placeholders)
+     # Print query for debugging to ensure proper formatting
+     #print(f"query is: {query}")
      cursor.execute(query)
      # Fetch the result of the query
      row = cursor.fetchone()
@@ -188,6 +180,7 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
           #replace any null characters
           reader = csv.reader(x.replace('\0','?') for x in f)
           columns = next(reader)
+          columns.insert(0, "Station")
           insertquery = 'insert into {0} ({1}) values ({2})'
           # Fill query placeholders with column names and # of question marks equal to the number of columns
           insertquery = insertquery.format(table_name, ','.join(columns), ','.join('?' * len(columns)))
@@ -207,7 +200,7 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
                     cursor.execute(insertquery, row)
                  except Exception as e:
                     logging.debug(f"Query execution failed: {str(e)}")
-          conn.commit()
+          connection_object.commit()
           logging.info(f"{file_path} added to table")
 
 
