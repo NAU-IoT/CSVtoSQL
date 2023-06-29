@@ -67,6 +67,14 @@ def get_last_csv_line(file_path):
             logging.debug(f"{file_path} is empty or all data is corrupt")
             return None
 
+
+def get_csv_header(file_path):
+    with open(file_path, 'r') as file:
+        reader = csv.reader(file)
+        header = next(reader)  # Read the header line
+    return header
+    
+
 def create_database(cursor, db_name):
     #create database if it does not exist
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
@@ -81,20 +89,31 @@ def create_database(cursor, db_name):
           logging.info(f"Database {db_name} created successfully.")
 
 
-def create_table(cursor, table_name):
+def create_table(cursor, table_name, file_path):
+
+    header = get_csv_header(file_path)
+    
     #create table if it does not exist
     create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
            id INT NOT NULL AUTO_INCREMENT,
-           Station CHAR(30) NOT NULL,
-           DateAndTime DATETIME(6) NOT NULL,
-           LoadName CHAR(30) NOT NULL,
-           ShuntVoltage FLOAT,
-           LoadVoltage FLOAT,
-           Current FLOAT,
-           Power FLOAT,
-           PRIMARY KEY (DateAndTime, LoadName),
+           Station CHAR(30) NOT NULL,"""
+
+    # Append columns and datatypes to query
+    for column, datatype in zip(header, DATATYPES):
+       create_table_query += f"\n{column} {datatype},"
+       # Select keys to ensure uniqueness in table
+       if(datatype.startswith('DATETIME')):
+          KeyVar1 = column # Define first key as timestamp
+       elif(datatype.startswith('CHAR')):
+          KeyVar2 = column # Define second key as string, hopefully a unique identifying name
+       else:
+          KeyVar2 = column # Second key defaults to last column in table
+
+    create_table_query +=       
+           f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
            KEY id_key (id)
            );"""
+
     # Check if the table already exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     result = cursor.fetchone()
@@ -112,32 +131,46 @@ def create_table(cursor, table_name):
 def check_file_in_db(cursor, table_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
-     #Parse Last_Line tuple into individual variables and convert variables into correct data types
-     DateAndTime, LoadName, ShuntVoltage, LoadVoltage, Current, Power = last_line
-     DateAndTime = format_timestamp(DateAndTime) # Format the timestamp
-     DateAndTime = datetime.datetime.strptime(DateAndTime, "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
-     ShuntVoltage = float(ShuntVoltage)
-     LoadVoltage = float(LoadVoltage)
-     Current = float(Current)
-     Power = float(Power)
+     # Split the last line into separate values
+     values = last_line.split(', ')
+     # Assign the values to variables dynamically using a dictionary
+     variables = {f"Var{i+1}": value for i, value in enumerate(values)}
 
-     #The following is for debugging to ensure values and datatypes are correct before querying
-     #DnT = type(DateAndTime)
-     #LN = type(LoadName)
-     #SV = type(ShuntVoltage)
-     #LV = type(LoadVoltage)
-     #C = type(Current)
-     #P = type(Power)
-     #print(f"DateAndTime is {DateAndTime} of type {DnT}")
-     #print(f"LoadName is {LoadName} of type {LN}")
-     #print(f"ShuntVoltage is {ShuntVoltage} of type {SV}")
-     #print(f"LoadVoltage is {LoadVoltage} of type {LV}")
-     #print(f"Current is {Current} of type {C}")
-     #print(f"Power is {Power} of type {P}")
+     # (debugging) Print the values of the variables
+     #print(variables["Var1"])
+     #print(variables["Var2"])
+     #print(variables["Var3"])
 
+     # Create empty list for variables
+     data = []
+     # Assign variables with corresponding datatypes
+     for i in range(len(variables)):
+        if(DATATYPES[i].startswith('CHAR'):
+           pass
+        elif(DATATYPES[i].startswith('INT'):
+           variables[i] = int(variables[i])
+        elif(DATATYPES[i].startswith('FLOAT'):
+           variables[i] = float(variables[i])
+        elif(DATATYPES[i].startswith('DATETIME'):
+           variables[i] = format_timestamp(variables[i]) # Format the timestamp
+           variables[i] = datetime.datetime.strptime(variables[i], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
+        else:
+            print("Datatype not supported")
+        data.append(variables[i])
+        
+     # Get the header of the csv file
+     header = get_csv_header(file_path)
+     # Convert header to a comma-separated string for columns
+     columns = ", ".join(header)
+
+     # debugging
+     print(f"data is: {data}")
+     print(f"columns are: {columns}")
+    
      # Execute query to check if line already exists in database
-     query = "SELECT * FROM {0} WHERE DateAndTime = '{1}' AND ShuntVoltage LIKE {2} AND LoadVoltage LIKE {3} AND Current LIKE {4} AND Power LIKE {5};"
-     query = query.format(table_name, DateAndTime, ShuntVoltage, LoadVoltage, Current, Power)
+     query = "SELECT * FROM {} WHERE {} LIKE {};"
+     query = query.format(table_name, columns, data)
+    
      cursor.execute(query)
      # Fetch the result of the query
      row = cursor.fetchone()
@@ -233,7 +266,7 @@ def main():
                          database=DB_NAME)
   cursor = conn.cursor() # Create a new cursor object
   # Create table
-  create_table(cursor, TABLE_NAME) # Parameters are (cursor, table name)
+  create_table(cursor, TABLE_NAME, file_path) # Parameters are (cursor, table name, csv file)
   if(Directories):
     # Multiple directories, process the files in each one
     for Directory in Directories:
