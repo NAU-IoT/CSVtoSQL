@@ -139,18 +139,18 @@ def check_file_in_db(cursor, table_name, file_path):
      for i in range(len(variables)):
         current_value = variables[f"{i}"]  # Assign the value to a variable
         if DATATYPES[i].startswith('CHAR'):
-           variables[f"{i}"] = f"'{current_value}'"
+           current_value = f"'{current_value}'"
         elif DATATYPES[i].startswith('INT'):
-           variables[f"{i}"] = int(current_value)
+           current_value = int(current_value)
         elif DATATYPES[i].startswith('FLOAT'):
-           variables[f"{i}"] = float(current_value)
+           current_value = float(current_value)
         elif DATATYPES[i].startswith('DATETIME'):
-           formatted_time = format_timestamp(current_value)  # Format the timestamp
-           variables[f"{i}"] = datetime.datetime.strptime(formatted_time, "%Y-%m-%d %H:%M:%S.%f")  # Convert string into datetime type
-           variables[f"{i}"] = f"'{variables[f'{i}']}'"
+           current_value = format_timestamp(current_value)  # Format the timestamp
+           current_value = datetime.datetime.strptime(current_value, "%Y-%m-%d %H:%M:%S.%f")  # Convert string into datetime type
+           current_value = f"'{current_value}'"
         else:
            print("Datatype not supported")
-        data.append(variables[f"{i}"])
+        data.append(current_value)
      # Get the header of the csv file
      header = get_csv_header(file_path)
      # Join the column names with placeholders using the LIKE operator
