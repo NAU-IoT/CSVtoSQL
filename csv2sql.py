@@ -137,18 +137,19 @@ def check_file_in_db(cursor, table_name, file_path):
      data = []
      # Assign variables with corresponding datatypes
      for i in range(len(variables)):
-        if(DATATYPES[i].startswith('CHAR')):
-           variables[f"{i}"] = f"'{variables[f'{i}']}'"
-        elif(DATATYPES[i].startswith('INT')):
-           variables[f"{i}"] = int(variables[f"{i}"])
-        elif(DATATYPES[i].startswith('FLOAT')):
-           variables[f"{i}"] = float(variables[f"{i}"])
-        elif(DATATYPES[i].startswith('DATETIME')):
-           variables[f"{i}"] = format_timestamp(variables[f"{i}"]) # Format the timestamp
-           variables[f"{i}"] = datetime.datetime.strptime(variables[f"{i}"], "%Y-%m-%d %H:%M:%S.%f") # Convert string into datetime type
+        current_value = variables[f"{i}"]  # Assign the value to a variable
+        if DATATYPES[i].startswith('CHAR'):
+           variables[f"{i}"] = f"'{current_value}'"
+        elif DATATYPES[i].startswith('INT'):
+           variables[f"{i}"] = int(current_value)
+        elif DATATYPES[i].startswith('FLOAT'):
+           variables[f"{i}"] = float(current_value)
+        elif DATATYPES[i].startswith('DATETIME'):
+           formatted_time = format_timestamp(current_value)  # Format the timestamp
+           variables[f"{i}"] = datetime.datetime.strptime(formatted_time, "%Y-%m-%d %H:%M:%S.%f")  # Convert string into datetime type
            variables[f"{i}"] = f"'{variables[f'{i}']}'"
         else:
-            print("Datatype not supported")
+           print("Datatype not supported")
         data.append(variables[f"{i}"])
      # Get the header of the csv file
      header = get_csv_header(file_path)
