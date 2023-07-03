@@ -95,7 +95,7 @@ def create_table(cursor, table_name, file_path):
     result = cursor.fetchone()
     if result:
         pass
-        #logging.info(f"Table {table_name} already exists.")
+#        logging.info(f"Table {table_name} already exists.")
     else:
         try:
            header = get_csv_header(file_path)
@@ -127,43 +127,22 @@ def create_table(cursor, table_name, file_path):
            logging.error(f"An error occurred while creating the table {table_name}: {str(e)}")
 
 
-def check_file_in_db(cursor, table_name, file_path):
+def check_file_in_db(file_path, max_ts_in_db):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
      variables = {f"{i}": value for i, value in enumerate(last_line)}
-
-     # Create empty list for variables
-     data = []
-     # Assign variables with corresponding datatypes
+     # Find timestamp column
      for i in range(len(variables)):
         current_value = variables[f"{i}"]  # Assign the value to a variable
-        if DATATYPES[i].startswith('CHAR'):
-           current_value = f"'{current_value}'"
-        elif DATATYPES[i].startswith('INT'):
-           current_value = int(current_value)
-        elif DATATYPES[i].startswith('FLOAT'):
-           current_value = float(current_value)
-        elif DATATYPES[i].startswith('DATETIME'):
-           current_value = format_timestamp(current_value)  # Format the timestamp
-           current_value = datetime.datetime.strptime(current_value, "%Y-%m-%d %H:%M:%S.%f")  # Convert string into datetime type
-           current_value = f"'{current_value}'"
-        else:
-           print("Datatype not supported")
-        data.append(current_value)
-     # Get the header of the csv file
-     header = get_csv_header(file_path)
-     # Join the column names with placeholders using the LIKE operator
-     placeholders = " AND ".join(["{} LIKE {}".format(column, datapoint) for column, datapoint in zip(header, data)])
-     # Execute query to check if line already exists in database
-     query = "SELECT * FROM {} WHERE {};"
-     query = query.format(table_name, placeholders)
-     # Print query for debugging to ensure proper formatting
-     #print(f"query is: {query}")
-     cursor.execute(query)
-     # Fetch the result of the query
-     row = cursor.fetchone()
-     return row
+        if DATATYPES[i].startswith('DATETIME'):
+           max_ts_in_file = format_timestamp(current_value)  # Format the timestamp
+#           print(f"csv file max ts: {max_ts_in_file}")
+#           print(f"db file max ts: {max_ts_in_db}")
+     if max_ts_in_db >= max_ts_in_file:
+        return True
+     else:
+        return None
 
 
 def format_timestamp(timestamp):
@@ -210,6 +189,7 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
     Current_Time = datetime.datetime.now()
     # Define a time delta to be 24 hours
     Delta = datetime.timedelta(hours=24)
+    Last_Db_Ts = None # initialize to None
     # Get list of files in given directory
     File_List = os.listdir(directory_path)
     # Sort files in ascending order by date
@@ -219,15 +199,19 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
         File_Path = os.path.join(directory_path, filename) # Get the full path for a file
         # test if File_Path is a file or directory
         if os.path.isfile(File_Path):
+           if Last_Db_Ts:
+              pass
+           else:
+              Last_Db_Ts = get_last_ts(cursor, table_name, File_Path)
            # Create table
            create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
-           row = check_file_in_db(cursor, table_name, File_Path) # Check if file exists in db
+           file_in_db = check_file_in_db(File_Path, Last_Db_Ts) # Check if file exists in db
            # Check if the row exists
-           if row:
-             # Row exists
+           if file_in_db:
+             # File is in db
              logging.info(f"{File_Path} already in table")
            else:
-             # Row does not exist
+             # File not in db
              Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
              # Check if file isn't a directory and check if modified within last 24 hours
              if Current_Time - Last_Modified_Time > Delta:
@@ -238,6 +222,30 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
                 logging.info(f"{File_Path} was last modified within 24 hours")
                 process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
     logging.info(f"Table: {table_name} was updated successfully")
+
+
+def get_last_ts(cursor, table_name, file_path):
+     #get the last line of the current file
+     last_line = get_last_csv_line(file_path)
+     # Assign the values in the last line to variables dynamically using a dictionary
+     variables = {f"{i}": value for i, value in enumerate(last_line)}
+     # Get the header of the csv file
+     header = get_csv_header(file_path)
+     # Find timestamp column
+     for i in range(len(variables)):
+        current_value = variables[f"{i}"]  # Assign the value to a variable
+        if DATATYPES[i].startswith('DATETIME'):
+           column = header[i]  # Get the column name that contained the DATETIME value
+        if(column is None):
+           print("Error: No timestamp column detected in csv file")
+     # Execute query to get most recent timestamp in table
+     query = "SELECT MAX({})FROM {};"
+     query = query.format(column, table_name)
+     cursor.execute(query)
+     # Fetch the result of the query
+     result = cursor.fetchone()
+     max_ts_in_db = result[0].strftime('%Y-%m-%d %H:%M:%S')
+     return max_ts_in_db
 
 
 def main():
