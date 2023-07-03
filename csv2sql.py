@@ -137,12 +137,12 @@ def check_file_in_db(file_path, max_ts_in_db):
         current_value = variables[f"{i}"]  # Assign the value to a variable
         if DATATYPES[i].startswith('DATETIME'):
            max_ts_in_file = format_timestamp(current_value)  # Format the timestamp
-#           print(f"csv file max ts: {max_ts_in_file}")
-#           print(f"db file max ts: {max_ts_in_db}")
-     if max_ts_in_db >= max_ts_in_file:
-        return True
-     else:
+           print(f"csv file max ts: {max_ts_in_file}")
+           print(f"db max ts: {max_ts_in_db}")
+     if max_ts_in_file >= max_ts_in_db:
         return None
+     else:
+        return True
 
 
 def format_timestamp(timestamp):
@@ -244,7 +244,7 @@ def get_last_ts(cursor, table_name, file_path):
      cursor.execute(query)
      # Fetch the result of the query
      result = cursor.fetchone()
-     max_ts_in_db = result[0].strftime('%Y-%m-%d %H:%M:%S')
+     max_ts_in_db = result[0].strftime('%Y-%m-%d')
      return max_ts_in_db
 
 
