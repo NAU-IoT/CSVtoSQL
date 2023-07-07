@@ -127,7 +127,7 @@ def create_table(cursor, table_name, file_path):
            logging.error(f"An error occurred while creating the table {table_name}: {str(e)}")
 
 
-def check_file_in_db(file_path, max_ts_in_db):
+def check_file_in_db(file_path, max_station_ts_in_db):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
@@ -137,9 +137,8 @@ def check_file_in_db(file_path, max_ts_in_db):
         current_value = variables[f"{i}"]  # Assign the value to a variable
         if DATATYPES[i].startswith('DATETIME'):
            max_ts_in_file = format_timestamp(current_value)  # Format the timestamp
-           print(f"csv file max ts: {max_ts_in_file}")
-           print(f"db max ts: {max_ts_in_db}")
-     if max_ts_in_file >= max_ts_in_db:
+#           print(f"csv file max ts: {max_ts_in_file}")                     # FOR DEBUGGING
+     if max_ts_in_file >= max_station_ts_in_db:
         return None
      else:
         return True
@@ -189,23 +188,25 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
     Current_Time = datetime.datetime.now()
     # Define a time delta to be 24 hours
     Delta = datetime.timedelta(hours=24)
-    Last_Db_Ts = None # initialize to None
     # Get list of files in given directory
     File_List = os.listdir(directory_path)
     # Sort files in ascending order by date
     File_List.sort()
+    # Initialize to none
+    Last_Station_Ts = None
     # Loop through all files in the sorted list
     for filename in File_List:
         File_Path = os.path.join(directory_path, filename) # Get the full path for a file
         # test if File_Path is a file or directory
         if os.path.isfile(File_Path):
-           if Last_Db_Ts:
+           if(Last_Station_Ts):
               pass
            else:
-              Last_Db_Ts = get_last_ts(cursor, table_name, File_Path)
+              # Get most recent timestamp from the current directory being processed
+              Last_Station_Ts = get_last_ts(cursor, table_name, station_name, File_Path)
            # Create table
            create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
-           file_in_db = check_file_in_db(File_Path, Last_Db_Ts) # Check if file exists in db
+           file_in_db = check_file_in_db(File_Path, Last_Station_Ts) # Check if file exists in db
            # Check if the row exists
            if file_in_db:
              # File is in db
@@ -224,7 +225,7 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
     logging.info(f"Table: {table_name} was updated successfully")
 
 
-def get_last_ts(cursor, table_name, file_path):
+def get_last_ts(cursor, table_name, station_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
@@ -239,12 +240,13 @@ def get_last_ts(cursor, table_name, file_path):
         if(column is None):
            print("Error: No timestamp column detected in csv file")
      # Execute query to get most recent timestamp in table
-     query = "SELECT MAX({})FROM {};"
-     query = query.format(column, table_name)
+     query = "SELECT MAX({})FROM {} WHERE Station LIKE '{}';"
+     query = query.format(column, table_name, station_name)
      cursor.execute(query)
      # Fetch the result of the query
      result = cursor.fetchone()
      max_ts_in_db = result[0].strftime('%Y-%m-%d')
+#     print(f"station max ts: {max_ts_in_db} from {station_name}")                     # FOR DEBUGGING
      return max_ts_in_db
 
 
