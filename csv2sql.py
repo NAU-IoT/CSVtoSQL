@@ -245,9 +245,14 @@ def get_last_ts(cursor, table_name, station_name, file_path):
      cursor.execute(query)
      # Fetch the result of the query
      result = cursor.fetchone()
-     max_ts_in_db = result[0].strftime('%Y-%m-%d')
-#     print(f"station max ts: {max_ts_in_db} from {station_name}")                     # FOR DEBUGGING
-     return max_ts_in_db
+     if result[0] is None:
+        # No Station data in DB, assign default value 0
+        return '0'
+     else:
+        # Format most recent timestamp from current directory
+        max_ts_in_db = result[0].strftime('%Y-%m-%d')
+#       print(f"station max ts: {max_ts_in_db} from {station_name}")                     # FOR DEBUGGING
+        return max_ts_in_db
 
 
 def main():
