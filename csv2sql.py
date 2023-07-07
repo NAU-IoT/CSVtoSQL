@@ -144,6 +144,7 @@ def check_file_in_db(file_path, max_station_ts_in_db):
         return True
 
 
+
 def format_timestamp(timestamp):
      ts = datetime.datetime.fromisoformat(timestamp)
      if ts.tzinfo != pytz.UTC:
