@@ -199,13 +199,13 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
         File_Path = os.path.join(directory_path, filename) # Get the full path for a file
         # test if File_Path is a file or directory
         if os.path.isfile(File_Path):
+           # Create table
+           create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
            if(Last_Station_Ts):
               pass
            else:
               # Get most recent timestamp from the current directory being processed
               Last_Station_Ts = get_last_ts(cursor, table_name, station_name, File_Path)
-           # Create table
-           create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
            file_in_db = check_file_in_db(File_Path, Last_Station_Ts) # Check if file exists in db
            # Check if the row exists
            if file_in_db:
