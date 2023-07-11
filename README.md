@@ -4,7 +4,6 @@ This repository contains scripts used to convert CSV file data into a SQL databa
 This repository includes information on:
   - Installing dependencies
   - How to use the scripts
-  - How to adapt the script to process various csv file data
   - How to implement this function as a cron job
   - Input and expected output format
   - How to display SQL data on Grafana
@@ -80,12 +79,6 @@ python3 csv2sql.py
 ```
 - Done!
 
-## Adapting the Script
-
-- Lines 79-89: Modify the create_table function by changing column names and data types to apply to your data (add/remove columns as necessary)
-- Lines 108-114: Change variable names and data types to reflect your tables columns and data types (refer to comments in code)
-- Line 131: Modify query to reflect your column names
-- Line 132: Change variable names to fit placeholders in query. These variables should be the same ones assigned at lines 108-114
 
 ## Using Cron
 
