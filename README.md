@@ -156,7 +156,12 @@ Once this has ben completed, you can begin setting up a dashboard to display the
 4. Back on the home page, click the plus and select "New dashboard" from the dropdown menu and select "New visualization"
    <img width="1390" alt="Screen Shot 2023-05-22 at 2 04 33 PM" src="https://github.com/NAU-IoT/CSVtoSQL/assets/72172361/a5e07160-cab1-4928-9dbc-838829a5bfa6">
 
-5. Select type of visualization. This example is comparing Power Consumption of a load against time. Switch from builder to code under the query section. Next, write your query. Next, hit run query. Finally, if you are satisfied with the look of your graph, click Apply.
+5.
+   1) Select type of visualization. This example is comparing Power Consumption of a load against time.
+   2) Switch from builder to code under the query section.
+   3) Next, write your query.
+   4) Next, hit run query.
+   5) Finally, if you are satisfied with the look of your graph, click Apply.
    <img width="1361" alt="Screen Shot 2023-05-22 at 2 07 56 PM" src="https://github.com/NAU-IoT/CSVtoSQL/assets/72172361/ac0704a6-fa4c-4b92-be9d-83d15012e10a">
 
 
