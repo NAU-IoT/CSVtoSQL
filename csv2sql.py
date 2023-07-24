@@ -45,18 +45,18 @@ Directories = [
               for directory in os.listdir(Parent_Dir_Path)
               if directory != "logs" and os.path.isdir(os.path.join(Parent_Dir_Path, directory))]
 
-# Define function
+
 def get_last_csv_line(file_path):
-    # empty string to later convert list into a string in order to use find
+    # Empty string to later convert list into a string in order to use find
     tempstring = ''
     with open(file_path, 'r') as file:
-        #replace any null values with a ? so that they can be identified later
+        # Replace any null values with a ? so that they can be identified later
         reader = csv.reader(x.replace('\0','?') for x in file)
-        lines = [] #empty list
+        lines = [] # Empty list
         for line in reader:
-           #search for ? i.e. null characters in data
+           # Search for ? i.e. null characters in data
            foundnull = tempstring.join(line).find('?')
-           # find returns a value if character is found, -1 if not found
+           # Find returns a value if character is found, -1 if not found
            if (foundnull != -1):
               continue # Skip the line if it has null value(s)
            else:
@@ -76,7 +76,7 @@ def get_csv_header(file_path):
 
 
 def create_database(cursor, db_name):
-    #create database if it does not exist
+    # Create database if it does not exist
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
     # Check if an error occurred during database creation
     if cursor.rowcount == -1:
@@ -99,7 +99,7 @@ def create_table(cursor, table_name, file_path):
     else:
         try:
            header = get_csv_header(file_path)
-           #create table if it does not exist
+           # Create table if it does not exist
            create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
                   id INT NOT NULL AUTO_INCREMENT,
                   Station CHAR(30) NOT NULL,"""
@@ -128,7 +128,7 @@ def create_table(cursor, table_name, file_path):
 
 
 def check_file_in_db(file_path, max_station_ts_in_db):
-     #get the last line of the current file
+     # Get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
      variables = {f"{i}": value for i, value in enumerate(last_line)}
@@ -139,9 +139,9 @@ def check_file_in_db(file_path, max_station_ts_in_db):
            max_ts_in_file = format_timestamp(current_value)  # Format the timestamp
 #           print(f"csv file max ts: {max_ts_in_file}")                     # FOR DEBUGGING
      if max_ts_in_file >= max_station_ts_in_db:
-        return None
+        return None # File not in db
      else:
-        return True
+        return True # File is in db
 
 
 
@@ -154,28 +154,28 @@ def format_timestamp(timestamp):
 
 
 def process_csv_file(connection_object, table_name, station_name, file_path):
-     # empty string to later convert list into a string in order to use find
+     # Empty string to later convert list into a string in order to use find
      tempstring = ''
      with open (file_path, 'r') as f:
-          #replace any null characters
+          # Replace any null characters
           reader = csv.reader(x.replace('\0','?') for x in f)
           columns = next(reader)
-          columns.insert(0, "Station")
+          columns.insert(0, "Station") # Insert a column named Station
           insertquery = 'insert into {0} ({1}) values ({2})'
           # Fill query placeholders with column names and # of question marks equal to the number of columns
           insertquery = insertquery.format(table_name, ','.join(columns), ','.join('?' * len(columns)))
           cursor = connection_object.cursor()
           for row in reader:
-              #search for ? i.e. null characters in data
+              # Search for ? i.e. null characters in data
               foundnull = tempstring.join(row).find('?')
-              # find returns a value if character is found, -1 if not found
+              # Find returns a value if character is found, -1 if not found
               if (foundnull != -1):
                  logging.info(f"skipping over corrupt data in {file_path} at line {row}")
                  continue # Skip the line if it has null value(s)
               else:
                  # Insert line into table
                  row[0] = format_timestamp(row[0]) # Format timestamp
-                 row.insert(0, station_name)
+                 row.insert(0, station_name) # Insert Station name into line
                  try:
                     cursor.execute(insertquery, row)
                  except Exception as e:
@@ -198,7 +198,7 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
     # Loop through all files in the sorted list
     for filename in File_List:
         File_Path = os.path.join(directory_path, filename) # Get the full path for a file
-        # test if File_Path is a file or directory
+        # Test if File_Path is a file or directory
         if os.path.isfile(File_Path):
            # Create table
            create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
