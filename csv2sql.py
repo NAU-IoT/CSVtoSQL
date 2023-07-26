@@ -189,28 +189,28 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
 
 def process_files_in_directory(directory_path, cursor, table_name, station_name, connection_object):
     # Get the current time
-    CurrentTime = datetime.datetime.now()
+    current_time = datetime.datetime.now()
     # Define a time delta to be 24 hours
-    Delta = datetime.timedelta(hours=24)
+    delta = datetime.timedelta(hours=24)
     # Get list of files in given directory
-    File_List = os.listdir(directory_path)
+    file_list = os.listdir(directory_path)
     # Sort files in ascending order by date
-    File_List.sort()
+    file_list.sort()
     # Initialize to none
-    Last_Station_Ts = None
+    last_station_ts = None
     # Loop through all files in the sorted list
-    for filename in File_List:
+    for filename in file_list:
         File_Path = os.path.join(directory_path, filename) # Get the full path for a file
         # Test if File_Path is a file or directory
         if os.path.isfile(File_Path):
            # Create table
            create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
-           if(Last_Station_Ts):
+           if(last_station_ts):
               pass
            else:
               # Get most recent timestamp from the current directory being processed
-              Last_Station_Ts = get_last_ts(cursor, table_name, station_name, File_Path)
-           file_in_db = check_file_in_db(File_Path, Last_Station_Ts) # Check if file exists in db
+              last_station_ts = get_latest_station_ts(cursor, table_name, station_name, File_Path)
+           file_in_db = check_file_in_db(File_Path, last_station_ts) # Check if file exists in db
            # Check if the row exists
            if file_in_db:
              # File is in db
@@ -219,7 +219,7 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
              # File not in db
              Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
              # Check if file isn't a directory and check if modified within last 24 hours
-             if CurrentTime - Last_Modified_Time > Delta:
+             if current_time - Last_Modified_Time > delta:
                 # File was edited over 24 hours ago
                 process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
              else:
@@ -229,7 +229,7 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
     logging.info(f"Table: {table_name} was updated successfully")
 
 
-def get_last_ts(cursor, table_name, station_name, file_path):
+def get_latest_station_ts(cursor, table_name, station_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
