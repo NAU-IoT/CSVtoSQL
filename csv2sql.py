@@ -189,7 +189,7 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
 
 def process_files_in_directory(directory_path, cursor, table_name, station_name, connection_object):
     # Get the current time
-    Current_Time = datetime.datetime.now()
+    CurrentTime = datetime.datetime.now()
     # Define a time delta to be 24 hours
     Delta = datetime.timedelta(hours=24)
     # Get list of files in given directory
@@ -219,7 +219,7 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
              # File not in db
              Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
              # Check if file isn't a directory and check if modified within last 24 hours
-             if Current_Time - Last_Modified_Time > Delta:
+             if CurrentTime - Last_Modified_Time > Delta:
                 # File was edited over 24 hours ago
                 process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
              else:
