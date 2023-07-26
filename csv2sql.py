@@ -233,12 +233,14 @@ def get_last_ts(cursor, table_name, station_name, file_path):
      variables = {f"{i}": value for i, value in enumerate(last_line)}
      # Get the header of the csv file
      header = get_csv_header(file_path)
+     column = None # Initialize column to None
      # Find timestamp column
      for i in range(len(variables)):
         if DATATYPES[i].startswith('DATETIME'):
            column = header[i]  # Get the column name that contained the DATETIME value
-        if(column is None):
-           print("Error: No timestamp column detected in csv file")
+     if(column is None):
+        print("Error: No timestamp column detected in csv file")
+        exit()
      # Execute query to get most recent timestamp in table
      query = "SELECT MAX({})FROM {} WHERE Station LIKE '{}';"
      query = query.format(column, table_name, station_name)
