@@ -200,32 +200,32 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
     last_station_ts = None
     # Loop through all files in the sorted list
     for filename in file_list:
-        File_Path = os.path.join(directory_path, filename) # Get the full path for a file
-        # Test if File_Path is a file or directory
-        if os.path.isfile(File_Path):
+        file_path = os.path.join(directory_path, filename) # Get the full path for a file
+        # Test if file_path is a file or directory
+        if os.path.isfile(file_path):
            # Create table
-           create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
+           create_table(cursor, table_name, file_path) # Parameters are (cursor, table name, csv file)
            if(last_station_ts):
               pass
            else:
               # Get most recent timestamp from the current directory being processed
-              last_station_ts = get_latest_station_ts(cursor, table_name, station_name, File_Path)
-           file_in_db = check_file_in_db(File_Path, last_station_ts) # Check if file exists in db
+              last_station_ts = get_latest_station_ts(cursor, table_name, station_name, file_path)
+           file_in_db = check_file_in_db(file_path, last_station_ts) # Check if file exists in db
            # Check if the row exists
            if file_in_db:
              # File is in db
-             logging.info(f"{File_Path} already in table")
+             logging.info(f"{file_path} already in table")
            else:
              # File not in db
-             Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
+             Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)) # Create variable for when the file was last modified
              # Check if file isn't a directory and check if modified within last 24 hours
              if current_time - Last_Modified_Time > delta:
                 # File was edited over 24 hours ago
-                process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
+                process_csv_file(connection_object, table_name, station_name, file_path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
              else:
                 # File was edited within 24 hours ago
-                logging.info(f"{File_Path} was last modified within 24 hours")
-                process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
+                logging.info(f"{file_path} was last modified within 24 hours")
+                process_csv_file(connection_object, table_name, station_name, file_path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
     logging.info(f"Table: {table_name} was updated successfully")
 
 
