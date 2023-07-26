@@ -112,15 +112,15 @@ def create_table(cursor, table_name, file_path):
               create_table_query += f"\n{column} {datatype},"
               # Select keys to ensure uniqueness in table
               if(datatype.startswith('DATETIME')):
-                 KeyVar1 = column # Define first key as timestamp
+                 keyvar1 = column # Define first key as timestamp
               elif(datatype.startswith('CHAR')):
-                 KeyVar2 = column # Define second key as string, hopefully a unique identifying name
+                 keyvar2 = column # Define second key as string, hopefully a unique identifying name
               else:
-                if(KeyVar2):
+                if(keyvar2):
                    pass
                 else:
-                   KeyVar2 = column # Second key defaults to last column in table
-           create_table_query += f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
+                   keyvar2 = column # Second key defaults to last column in table
+           create_table_query += f"""PRIMARY KEY ({keyvar1}, {keyvar2}),
                   KEY id_key (id)
                   );"""
            # Create the table
