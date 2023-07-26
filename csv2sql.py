@@ -40,13 +40,13 @@ datatypes_yaml = config['datatypes']
 DATATYPES = list(datatypes_yaml)
 
 # Establish path to directory containing files or all other data directories
-Parent_Dir_Path = config['parent_dir_path']
+PARENT_DIR_PATH = config['parent_dir_path']
 
 # Get a list of all directories contained in parent directory except for directories titled "logs"
 Directories = [
               directory
-              for directory in os.listdir(Parent_Dir_Path)
-              if directory != "logs" and os.path.isdir(os.path.join(Parent_Dir_Path, directory))]
+              for directory in os.listdir(PARENT_DIR_PATH)
+              if directory != "logs" and os.path.isdir(os.path.join(PARENT_DIR_PATH, directory))]
 
 
 def get_last_csv_line(file_path):
@@ -217,9 +217,9 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
              logging.info(f"{file_path} already in table")
            else:
              # File not in db
-             Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)) # Create variable for when the file was last modified
+             last_modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)) # Create variable for when the file was last modified
              # Check if file isn't a directory and check if modified within last 24 hours
-             if current_time - Last_Modified_Time > delta:
+             if current_time - last_modified_time > delta:
                 # File was edited over 24 hours ago
                 process_csv_file(connection_object, table_name, station_name, file_path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
              else:
@@ -280,10 +280,10 @@ def main():
   if(Directories):
     # Multiple directories, process the files in each one
     for Directory in Directories:
-        Dir_Path = os.path.join(Parent_Dir_Path, Directory)
+        dir_path = os.path.join(PARENT_DIR_PATH, Directory)
         # extract the last component of the path, i.e. the directory name and store it as the station name
-        STATION_NAME = os.path.basename(Dir_Path)
-        process_files_in_directory(Dir_Path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
+        STATION_NAME = os.path.basename(dir_path)
+        process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
     #close cursor and connection
     cursor.close()
     conn.close()
@@ -291,7 +291,7 @@ def main():
     logging.info ("-"*100)
 
   else:
-     process_files_in_directory(Dir_Path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
+     process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
      #close cursor and connection
      cursor.close()
      conn.close()
