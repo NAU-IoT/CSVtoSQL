@@ -32,7 +32,6 @@ DB_PASSWORD = config['db_password'] # Password for the database user
 DB_NAME = config['db_name'] # Database to be accessed
 DB_PORT = config['db_port'] # Port used by db
 TABLE_NAME = config['table_name'] # Table to write data to
-STATION_NAME = config['station_name'] # Stationary node where data is coming from
 
 # Extract the 'datatypes' list from the configuration file
 datatypes_yaml = config['datatypes']
