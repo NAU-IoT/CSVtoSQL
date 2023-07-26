@@ -9,8 +9,8 @@ import logging
 import pytz
 import yaml
 
-# logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG) # use this line to create log file in working directory
-logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
+logging.basicConfig(filename='csv2sql-`date +%Y%m%d`.log', level=logging.DEBUG) # use this line to create log file in working directory
+# logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
 
 # Get the directory of the current script file
 script_dir = os.path.dirname(os.path.abspath(__file__))
