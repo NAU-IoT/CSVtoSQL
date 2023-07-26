@@ -242,7 +242,7 @@ def get_latest_station_ts(cursor, table_name, station_name, file_path):
         if DATATYPES[i].startswith('DATETIME'):
            column = header[i]  # Get the column name that contained the DATETIME value
      if(column is None):
-        print("Error: No timestamp column detected in csv file")
+        logging.error("Error: No timestamp column detected in csv file")
         exit()
      # Execute query to get most recent timestamp in table
      query = "SELECT MAX({})FROM {} WHERE Station LIKE '{}';"
@@ -265,7 +265,7 @@ def compare_csv_and_config(header):
     header_elements = len(header)
     datatype_elements = len(DATATYPES)
     if(header_elements != datatype_elements):
-       print(f"""Error: Mismatch in csv columns and datatypes. There are {header_elements} columns in the CSV file
+       logging.error(f"""Error: Mismatch in csv columns and datatypes. There are {header_elements} columns in the CSV file
              and {datatype_elements} listed datatypes in the configuration file.""")
        exit()
 
@@ -295,13 +295,13 @@ def main():
            # extract the last component of the path, i.e. the directory name and store it as the station name
            STATION_NAME = os.path.basename(dir_path)
            process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
-    
+
      else:
         STATION_NAME = os.path.basename(PARENT_DIR_PATH)
         process_files_in_directory(PARENT_DIR_PATH, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
 
   except Exception as e:
-     logging.info(f"Database: {DB_NAME} was not updated due to error: {str(e)}")  
+     logging.error(f"Database: {DB_NAME} was not updated due to error: {str(e)}")  
      exit()
 
   # Commit all changes to database
