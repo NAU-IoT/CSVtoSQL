@@ -185,7 +185,7 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
                  except Exception as e:
                     logging.debug(f"Query execution failed: {str(e)}")
 #          connection_object.commit()
-          logging.info(f"{file_path} added to table")
+          logging.info(f"{file_path} staged for addition to database")
 
 
 def process_files_in_directory(directory_path, cursor, table_name, station_name, connection_object):
@@ -227,7 +227,6 @@ def process_files_in_directory(directory_path, cursor, table_name, station_name,
                 # File was edited within 24 hours ago
                 logging.info(f"{file_path} was last modified within 24 hours")
                 process_csv_file(connection_object, table_name, station_name, file_path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
-    logging.info(f"Table: {table_name} was updated successfully")
 
 
 def get_latest_station_ts(cursor, table_name, station_name, file_path):
@@ -273,42 +272,45 @@ def compare_csv_and_config(header):
 
 
 def main():
-  # Create a connection object
-  conn = mariadb.connect(user=DB_USER,
-                         password=DB_PASSWORD,
-                         host=DB_HOST,
-                         port=DB_PORT)
-  cursor = conn.cursor() # Create a cusor object
-  create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
-  cursor.close() # Close the cursor
-  conn.close() # Close initial connection
-  # Create a new connection object, this time including the database
-  conn = mariadb.connect(user=DB_USER,
-                         password=DB_PASSWORD,
-                         host=DB_HOST,
-                         port=DB_PORT,
-                         database=DB_NAME)
-  cursor = conn.cursor() # Create a new cursor object
-  if(Directories):
-     # Multiple directories, process the files in each one
-     for Directory in Directories:
-        dir_path = os.path.join(PARENT_DIR_PATH, Directory)
-        # extract the last component of the path, i.e. the directory name and store it as the station name
-        STATION_NAME = os.path.basename(dir_path)
-        process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
+  try:
+     # Create a connection object
+     conn = mariadb.connect(user=DB_USER,
+                            password=DB_PASSWORD,
+                            host=DB_HOST,
+                            port=DB_PORT)
+     cursor = conn.cursor() # Create a cusor object
+     create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
+     cursor.close() # Close the cursor
+     conn.close() # Close initial connection
+     # Create a new connection object, this time including the database
+     conn = mariadb.connect(user=DB_USER,
+                            password=DB_PASSWORD,
+                            host=DB_HOST,
+                            port=DB_PORT,
+                            database=DB_NAME)
+     cursor = conn.cursor() # Create a new cursor object
+     if(Directories):
+        # Multiple directories, process the files in each one
+        for Directory in Directories:
+           dir_path = os.path.join(PARENT_DIR_PATH, Directory)
+           # extract the last component of the path, i.e. the directory name and store it as the station name
+           STATION_NAME = os.path.basename(dir_path)
+           process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
+    
+     else:
+        STATION_NAME = os.path.basename(PARENT_DIR_PATH)
+        process_files_in_directory(PARENT_DIR_PATH, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
 
-  else:
-     dir_path = os.path.join(PARENT_DIR_PATH, Directory)
-     process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
+  except Exception as e:
+     logging.info(f"Database: {DB_NAME} was not updated due to error: {str(e)}")  
+     exit()
 
-
+  # Commit all changes to database
   conn.commit()
-
-
-  #close cursor and connection
+  # Close cursor and connection
   cursor.close()
   conn.close()
-  logging.info(f"Database: {DB_NAME} was updated successfully")
+  logging.info(f"Database: {DB_NAME} was updated successfully with all staged changes")
   logging.info ("-"*100)
 
 if __name__ == "__main__":
