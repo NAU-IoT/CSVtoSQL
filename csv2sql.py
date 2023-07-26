@@ -235,7 +235,6 @@ def get_last_ts(cursor, table_name, station_name, file_path):
      header = get_csv_header(file_path)
      # Find timestamp column
      for i in range(len(variables)):
-        current_value = variables[f"{i}"]  # Assign the value to a variable
         if DATATYPES[i].startswith('DATETIME'):
            column = header[i]  # Get the column name that contained the DATETIME value
         if(column is None):
