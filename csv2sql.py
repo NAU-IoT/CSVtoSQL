@@ -9,8 +9,11 @@ import logging
 import pytz
 import yaml
 
-# logging.basicConfig(filename='csv2sql.log', level=logging.DEBUG) # use this line to create log file in working directory
-logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
+# Get the current date in the format YYYYMMDD
+current_date = datetime.datetime.now().strftime("%Y%m%d")
+
+logging.basicConfig(filename=f"csv2sql-{current_date}.log", level=logging.DEBUG) # use this line to create log file in working directory
+# logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
 
 # Get the directory of the current script file
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +32,6 @@ DB_PASSWORD = config['db_password'] # Password for the database user
 DB_NAME = config['db_name'] # Database to be accessed
 DB_PORT = config['db_port'] # Port used by db
 TABLE_NAME = config['table_name'] # Table to write data to
-STATION_NAME = config['station_name'] # Stationary node where data is coming from
 
 # Extract the 'datatypes' list from the configuration file
 datatypes_yaml = config['datatypes']
@@ -37,13 +39,13 @@ datatypes_yaml = config['datatypes']
 DATATYPES = list(datatypes_yaml)
 
 # Establish path to directory containing files or all other data directories
-Parent_Dir_Path = config['parent_dir_path']
+PARENT_DIR_PATH = config['parent_dir_path']
 
 # Get a list of all directories contained in parent directory except for directories titled "logs"
 Directories = [
               directory
-              for directory in os.listdir(Parent_Dir_Path)
-              if directory != "logs" and os.path.isdir(os.path.join(Parent_Dir_Path, directory))]
+              for directory in os.listdir(PARENT_DIR_PATH)
+              if directory != "logs" and os.path.isdir(os.path.join(PARENT_DIR_PATH, directory))]
 
 
 def get_last_csv_line(file_path):
@@ -99,6 +101,7 @@ def create_table(cursor, table_name, file_path):
     else:
         try:
            header = get_csv_header(file_path)
+           compare_csv_and_config(header) # Check for equal # of datatypes and csv file columns
            # Create table if it does not exist
            create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
                   id INT NOT NULL AUTO_INCREMENT,
@@ -109,15 +112,15 @@ def create_table(cursor, table_name, file_path):
               create_table_query += f"\n{column} {datatype},"
               # Select keys to ensure uniqueness in table
               if(datatype.startswith('DATETIME')):
-                 KeyVar1 = column # Define first key as timestamp
+                 keyvar1 = column # Define first key as timestamp
               elif(datatype.startswith('CHAR')):
-                 KeyVar2 = column # Define second key as string, hopefully a unique identifying name
+                 keyvar2 = column # Define second key as string, hopefully a unique identifying name
               else:
-                if(KeyVar2):
+                if(keyvar2):
                    pass
                 else:
-                   KeyVar2 = column # Second key defaults to last column in table
-           create_table_query += f"""PRIMARY KEY ({KeyVar1}, {KeyVar2}),
+                   keyvar2 = column # Second key defaults to last column in table
+           create_table_query += f"""PRIMARY KEY ({keyvar1}, {keyvar2}),
                   KEY id_key (id)
                   );"""
            # Create the table
@@ -180,66 +183,67 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
                     cursor.execute(insertquery, row)
                  except Exception as e:
                     logging.debug(f"Query execution failed: {str(e)}")
-          connection_object.commit()
-          logging.info(f"{file_path} added to table")
+#          connection_object.commit()
+          logging.info(f"{file_path} staged for addition to database")
 
 
 def process_files_in_directory(directory_path, cursor, table_name, station_name, connection_object):
     # Get the current time
-    Current_Time = datetime.datetime.now()
+    current_time = datetime.datetime.now()
     # Define a time delta to be 24 hours
-    Delta = datetime.timedelta(hours=24)
+    delta = datetime.timedelta(hours=24)
     # Get list of files in given directory
-    File_List = os.listdir(directory_path)
+    file_list = os.listdir(directory_path)
     # Sort files in ascending order by date
-    File_List.sort()
+    file_list.sort()
     # Initialize to none
-    Last_Station_Ts = None
+    last_station_ts = None
     # Loop through all files in the sorted list
-    for filename in File_List:
-        File_Path = os.path.join(directory_path, filename) # Get the full path for a file
-        # Test if File_Path is a file or directory
-        if os.path.isfile(File_Path):
+    for filename in file_list:
+        file_path = os.path.join(directory_path, filename) # Get the full path for a file
+        # Test if file_path is a file or directory
+        if os.path.isfile(file_path):
            # Create table
-           create_table(cursor, table_name, File_Path) # Parameters are (cursor, table name, csv file)
-           if(Last_Station_Ts):
+           create_table(cursor, table_name, file_path) # Parameters are (cursor, table name, csv file)
+           if(last_station_ts):
               pass
            else:
               # Get most recent timestamp from the current directory being processed
-              Last_Station_Ts = get_last_ts(cursor, table_name, station_name, File_Path)
-           file_in_db = check_file_in_db(File_Path, Last_Station_Ts) # Check if file exists in db
+              last_station_ts = get_latest_station_ts(cursor, table_name, station_name, file_path)
+           file_in_db = check_file_in_db(file_path, last_station_ts) # Check if file exists in db
            # Check if the row exists
            if file_in_db:
              # File is in db
-             logging.info(f"{File_Path} already in table")
+             logging.info(f"{file_path} already in table")
            else:
              # File not in db
-             Last_Modified_Time = datetime.datetime.fromtimestamp(os.path.getmtime(File_Path)) # Create variable for when the file was last modified
+             last_modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)) # Create variable for when the file was last modified
              # Check if file isn't a directory and check if modified within last 24 hours
-             if Current_Time - Last_Modified_Time > Delta:
+             if current_time - last_modified_time > delta:
                 # File was edited over 24 hours ago
-                process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
+                process_csv_file(connection_object, table_name, station_name, file_path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
              else:
                 # File was edited within 24 hours ago
-                logging.info(f"{File_Path} was last modified within 24 hours")
-                process_csv_file(connection_object, table_name, station_name, File_Path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
-    logging.info(f"Table: {table_name} was updated successfully")
+                logging.info(f"{file_path} was last modified within 24 hours")
+                process_csv_file(connection_object, table_name, station_name, file_path) # Insert file into table, Parameters are (connection_object, table_name, station_name, file_path)
 
 
-def get_last_ts(cursor, table_name, station_name, file_path):
+def get_latest_station_ts(cursor, table_name, station_name, file_path):
      #get the last line of the current file
      last_line = get_last_csv_line(file_path)
      # Assign the values in the last line to variables dynamically using a dictionary
      variables = {f"{i}": value for i, value in enumerate(last_line)}
      # Get the header of the csv file
      header = get_csv_header(file_path)
+     compare_csv_and_config(header) # Check for equal # of datatypes and csv file columns
+     column = None # Initialize column to None
      # Find timestamp column
      for i in range(len(variables)):
-        current_value = variables[f"{i}"]  # Assign the value to a variable
         if DATATYPES[i].startswith('DATETIME'):
            column = header[i]  # Get the column name that contained the DATETIME value
-        if(column is None):
-           print("Error: No timestamp column detected in csv file")
+     if(column is None):
+        logging.error("Error: No timestamp column detected in csv file")
+        exit()
      # Execute query to get most recent timestamp in table
      query = "SELECT MAX({})FROM {} WHERE Station LIKE '{}';"
      query = query.format(column, table_name, station_name)
@@ -256,44 +260,57 @@ def get_last_ts(cursor, table_name, station_name, file_path):
         return max_ts_in_db
 
 
+# Function to make sure there are equal # of datatypes and csv file columns
+def compare_csv_and_config(header):
+    header_elements = len(header)
+    datatype_elements = len(DATATYPES)
+    if(header_elements != datatype_elements):
+       logging.error(f"""Error: Mismatch in csv columns and datatypes. There are {header_elements} columns in the CSV file
+             and {datatype_elements} listed datatypes in the configuration file.""")
+       exit()
+
+
 def main():
-  # Create a connection object
-  conn = mariadb.connect(user=DB_USER,
-                         password=DB_PASSWORD,
-                         host=DB_HOST,
-                         port=DB_PORT)
-  cursor = conn.cursor() # Create a cusor object
-  create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
-  cursor.close() # Close the cursor
-  conn.close() # Close initial connection
-  # Create a new connection object, this time including the database
-  conn = mariadb.connect(user=DB_USER,
-                         password=DB_PASSWORD,
-                         host=DB_HOST,
-                         port=DB_PORT,
-                         database=DB_NAME)
-  cursor = conn.cursor() # Create a new cursor object
-  if(Directories):
-    # Multiple directories, process the files in each one
-    for Directory in Directories:
-        Dir_Path = os.path.join(Parent_Dir_Path, Directory)
-        # extract the last component of the path, i.e. the directory name and store it as the station name
-        STATION_NAME = os.path.basename(Dir_Path)
-        process_files_in_directory(Dir_Path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
-    #close cursor and connection
-    cursor.close()
-    conn.close()
-    logging.info(f"Database: {DB_NAME} was updated successfully")
-    logging.info ("-"*100)
+  try:
+     # Create a connection object
+     conn = mariadb.connect(user=DB_USER,
+                            password=DB_PASSWORD,
+                            host=DB_HOST,
+                            port=DB_PORT)
+     cursor = conn.cursor() # Create a cusor object
+     create_database(cursor, DB_NAME) # Parameters are (cursor, database name)
+     cursor.close() # Close the cursor
+     conn.close() # Close initial connection
+     # Create a new connection object, this time including the database
+     conn = mariadb.connect(user=DB_USER,
+                            password=DB_PASSWORD,
+                            host=DB_HOST,
+                            port=DB_PORT,
+                            database=DB_NAME)
+     cursor = conn.cursor() # Create a new cursor object
+     if(Directories):
+        # Multiple directories, process the files in each one
+        for Directory in Directories:
+           dir_path = os.path.join(PARENT_DIR_PATH, Directory)
+           # extract the last component of the path, i.e. the directory name and store it as the station name
+           STATION_NAME = os.path.basename(dir_path)
+           process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
 
-  else:
-     process_files_in_directory(Dir_Path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
-     #close cursor and connection
-     cursor.close()
-     conn.close()
-     logging.info(f"Database: {DB_NAME} was updated successfully")
-     logging.info ("-"*100)
+     else:
+        STATION_NAME = os.path.basename(PARENT_DIR_PATH)
+        process_files_in_directory(PARENT_DIR_PATH, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
 
+  except Exception as e:
+     logging.error(f"Database: {DB_NAME} was not updated due to error: {str(e)}")  
+     exit()
+
+  # Commit all changes to database
+  conn.commit()
+  # Close cursor and connection
+  cursor.close()
+  conn.close()
+  logging.info(f"Database: {DB_NAME} was updated successfully with all staged changes")
+  logging.info ("-"*100)
 
 if __name__ == "__main__":
     main()
