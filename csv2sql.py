@@ -102,6 +102,7 @@ def create_table(cursor, table_name, file_path):
     else:
         try:
            header = get_csv_header(file_path)
+           compare_csv_and_config(header) # Check for equal # of datatypes and csv file columns
            # Create table if it does not exist
            create_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
                   id INT NOT NULL AUTO_INCREMENT,
@@ -183,7 +184,7 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
                     cursor.execute(insertquery, row)
                  except Exception as e:
                     logging.debug(f"Query execution failed: {str(e)}")
-          connection_object.commit()
+#          connection_object.commit()
           logging.info(f"{file_path} added to table")
 
 
@@ -236,6 +237,7 @@ def get_latest_station_ts(cursor, table_name, station_name, file_path):
      variables = {f"{i}": value for i, value in enumerate(last_line)}
      # Get the header of the csv file
      header = get_csv_header(file_path)
+     compare_csv_and_config(header) # Check for equal # of datatypes and csv file columns
      column = None # Initialize column to None
      # Find timestamp column
      for i in range(len(variables)):
@@ -260,6 +262,16 @@ def get_latest_station_ts(cursor, table_name, station_name, file_path):
         return max_ts_in_db
 
 
+# Function to make sure there are equal # of datatypes and csv file columns
+def compare_csv_and_config(header):
+    header_elements = len(header)
+    datatype_elements = len(DATATYPES)
+    if(header_elements != datatype_elements):
+       print(f"""Error: Mismatch in csv columns and datatypes. There are {header_elements} columns in the CSV file
+             and {datatype_elements} listed datatypes in the configuration file.""")
+       exit()
+
+
 def main():
   # Create a connection object
   conn = mariadb.connect(user=DB_USER,
@@ -278,26 +290,25 @@ def main():
                          database=DB_NAME)
   cursor = conn.cursor() # Create a new cursor object
   if(Directories):
-    # Multiple directories, process the files in each one
-    for Directory in Directories:
+     # Multiple directories, process the files in each one
+     for Directory in Directories:
         dir_path = os.path.join(PARENT_DIR_PATH, Directory)
         # extract the last component of the path, i.e. the directory name and store it as the station name
         STATION_NAME = os.path.basename(dir_path)
         process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
-    #close cursor and connection
-    cursor.close()
-    conn.close()
-    logging.info(f"Database: {DB_NAME} was updated successfully")
-    logging.info ("-"*100)
 
   else:
      process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
-     #close cursor and connection
-     cursor.close()
-     conn.close()
-     logging.info(f"Database: {DB_NAME} was updated successfully")
-     logging.info ("-"*100)
 
+
+  conn.commit()
+
+
+  #close cursor and connection
+  cursor.close()
+  conn.close()
+  logging.info(f"Database: {DB_NAME} was updated successfully")
+  logging.info ("-"*100)
 
 if __name__ == "__main__":
     main()
