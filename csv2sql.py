@@ -298,6 +298,7 @@ def main():
         process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
 
   else:
+     dir_path = os.path.join(PARENT_DIR_PATH, Directory)
      process_files_in_directory(dir_path, cursor, TABLE_NAME, STATION_NAME, conn) # Parameters are (directory path, cursor, table name, station name, connection object)
 
 
