@@ -9,7 +9,10 @@ import logging
 import pytz
 import yaml
 
-logging.basicConfig(filename='csv2sql-`date +%Y%m%d`.log', level=logging.DEBUG) # use this line to create log file in working directory
+# Get the current date in the format YYYYMMDD
+current_date = datetime.datetime.now().strftime("%Y%m%d")
+
+logging.basicConfig(filename=f"csv2sql-{current_date}.log", level=logging.DEBUG) # use this line to create log file in working directory
 # logging.basicConfig(filename='/home/supervisor/CSVtoSQL/csv2sql.log', level=logging.DEBUG) # Use this line for absolute path
 
 # Get the directory of the current script file
