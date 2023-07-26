@@ -71,7 +71,7 @@ cd CSVtoSQL
 ```
 - Modify configuration file to suit your implementation:
 ```
-nano configuration.py
+nano configuration.yaml
 ```
 - Execute script: 
 ```
