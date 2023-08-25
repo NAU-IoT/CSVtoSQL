@@ -182,7 +182,9 @@ def process_csv_file(connection_object, table_name, station_name, file_path):
                  try:
                     cursor.execute(insertquery, row)
                  except Exception as e:
-                    logging.debug(f"Query execution failed: {str(e)}")
+                    error_message = str(e)
+                    if "Duplicate entry" not in error_message:  # Ignore duplicate entry errors
+                       logging.debug(f"Query execution failed: {error_message}")
 #          connection_object.commit()
           logging.info(f"{file_path} staged for addition to database")
 
