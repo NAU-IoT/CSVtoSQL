@@ -149,11 +149,16 @@ def check_file_in_db(file_path, max_station_ts_in_db):
 
 
 def format_timestamp(timestamp):
-     ts = datetime.datetime.fromisoformat(timestamp)
-     if ts.tzinfo != pytz.UTC:
-        ts = ts.astimezone(pytz.UTC) # Convert timestamp to UTC if it is not already
-     timestamp = ts.strftime('%Y-%m-%d %H:%M:%S.%f') # Format the string to remove timezone offset
-     return timestamp
+     try:
+        if timestamp.endswith('Z'): # Convert UTC Z into UTC 00:00
+           timestamp = timestamp.replace('Z', '+00:00')
+        ts = datetime.datetime.fromisoformat(timestamp)
+        if ts.tzinfo is not None and ts.tzinfo != pytz.UTC:
+           ts = ts.astimezone(pytz.UTC) # Convert timestamp to UTC if it is not already
+        timestamp = ts.strftime('%Y-%m-%d %H:%M:%S.%f') # Format the string to remove timezone offset
+        return timestamp
+     except Exception as e:
+        logging.error(f"An error occurred while formatting the timestamp: {str(e)}")
 
 
 def process_csv_file(connection_object, table_name, station_name, file_path):
